@@ -7,15 +7,7 @@
   <img src="https://img.shields.io/badge/UI-Custom%20Black%20%26%20Pastel-black?style=flat-square" alt="UI Style">
 </p>
 
-**ZeroMenu** is a modern cheat menu built specifically for Among Us (IL2CPP). It features a fully custom, natively drawn IMGUI interface designed with a sleek, dark aesthetic and pastel accents. Unlike other menus, ZeroMenu focuses on stability, avoiding IL2CPP stripped method crashes while providing a fluid, draggable, and animated user experience.
-
----
-
-## 📖 About: Main Menu & UI
-The main menu is built from scratch using a custom window styling system. 
-*   **Draggable Tabs**: An invisible, manually coded scrollbar allows you to hold click and drag left or right to reveal hidden tabs without breaking the window layout.
-*   **Smooth Animations**: Custom toggles that slide smoothly, custom sliders that fade and scale when dragged, and buttons that emit a "smooth opacity flash" when clicked.
-*   **Styling**: Native rounded rectangles, anti-aliased borders, and a black/dark-grey background with pastel cyan/green accents.
+**ZeroMenu** Mod For Among Us!
 
 ---
 
