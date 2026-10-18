@@ -123,19 +123,10 @@ Menu configuration settings.
 
 ---
 
-## 🧑‍💻 Code Blame / History
+# ⚠️ Disclaimer
 
-> *A look at the evolution of the ZeroMenu codebase.*
+This mod is not affiliated with Among Us or Innersloth LLC, and the content contained therein is not endorsed or otherwise sponsored by Innersloth LLC. Portions of the materials contained herein are property of Innersloth LLC. © Innersloth LLC.
 
-```bash
-$ git log --oneline --graph --decorate
+This mod is not intended to be used in any manner that interferes with Innersloth's services, Innersloth's operation of Among Us, the integrity or availability of the game, or the normal gameplay experience of other players. The creator does not endorse, encourage, or condone using this mod to disrupt games, negatively affect other users, bypass rules or protections, or gain an unfair advantage in any setting where such use is prohibited. Any misuse is solely the responsibility of the user.
 
-* 7a8f9b2 (HEAD -> main) feat: Added manual invisible scroll for tabs to fix IL2CPP layout bugs
-* c3d4e5f feat: Implemented ESP (Tracers, Nametags, Reveal Votes) & Fixed MaskableGraphic crash
-* 1a2b3c4 feat: Added Self Tab (Immortality, Phantom) & Harmony patches
-* 9f8e7d6 fix: Resolved 'Il2CppReferenceArray' and 'Collider2D' missing reference issues
-* 5e4d3c2 refactor: Moved logic from UI to Functions/ to keep UI clean
-* 8b7a6c5 feat: Added CustomSlider and Smooth Button Opacity flash
-* 4c3b2a1 style: Changed UI to dark pastel theme with rounded borders and tab lines
-* 3a2b1c0 feat: Created base ITab structure and MainUI window logic
-* 0d1e2f3 Initial commit: Base BepInEx IL2CPP template with basic window
+Usage of this mod can violate the terms of service of Among Us, which may lead to punitive action including temporary or permanent bans from the game. The creator is not responsible for any consequences you may face due to usage. Use at your own risk.
