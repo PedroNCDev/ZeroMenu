@@ -9,6 +9,8 @@
 
 **ZeroMenu** Mod For Among Us!
 
+<img alt="image" src="ZeroMenuinGame.jpeg">
+
 ---
 
 ## 📖 About: About Tab
