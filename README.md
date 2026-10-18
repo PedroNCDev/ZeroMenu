@@ -4,7 +4,7 @@
 <p align="left">
   <img src="https://img.shields.io/badge/version-1.0.0-blue?style=flat-square" alt="Version">
   <img src="https://img.shields.io/badge/Among%20Us-IL2CPP-green?style=flat-square" alt="Among Us">
-  <img src="https://img.shields.io/badge/UI-Custom%20Black%20%26%20Pastel-black?style=flat-square" alt="UI Style">
+  <img src="https://img.shields.io/badge/UI-Custom%20Black%20%26%20Thanks?style=flat-square" alt="UI Style">
 </p>
 
 **ZeroMenu** Mod For Among Us!
