@@ -1,5 +1,5 @@
 # ZeroMenu 🚀
-> **An advanced, highly customizable, and visually stunning cheat menu for Among Us (IL2CPP).**
+> **The Tuff, Best, And All Tuff Menu**
 
 <p align="left">
   <img src="https://img.shields.io/badge/version-1.0.0-blue?style=flat-square" alt="Version">
