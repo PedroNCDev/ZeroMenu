@@ -27,6 +27,10 @@ namespace ZeroMenu.Tabs
             Troll.DoorTrollerEnabled = CustomToggle.Draw(Troll.DoorTrollerEnabled, "Door Troller", "DoorTroller");
             Troll.AutoExposeEnabled = CustomToggle.Draw(Troll.AutoExposeEnabled, "Auto Expose Impostors", "AutoExpose");
 
+            bool newVal = CustomToggle.Draw(Troll.DisableGameEndNonHost, "Disable Game Ending (non-host)", "DisableGameEndNonHost");
+            if (newVal != Troll.DisableGameEndNonHost)
+                Troll.SetDisableGameEndNonHost(newVal);
+
             if (Troll.DoorTrollerEnabled)
             {
                 GUILayout.BeginHorizontal(new Il2CppReferenceArray<GUILayoutOption>(0));
