@@ -154,6 +154,59 @@ namespace ZeroMenu.Functions
             }
             ZeroMenu.Plugin.notifications.Send("Disconnect All", "$Disconnect all player with rpc mlfor.", 5f);
         }
+        
+        // test for disable game ending for non host client (fake null)
+        public static void SetDisableGameEndNonHost(bool enabled)
+        {
+            DisableGameEndNonHost = enabled;
+
+            if (enabled && AmongUsClient.Instance != null && !AmongUsClient.Instance.AmHost
+                && GameManager.Instance != null && ShipStatus.Instance != null)
+            {
+                try
+                {
+                    GameManager.Instance.Despawn();
+                    ZeroMenu.Plugin.notifications.Send("No Game End", "GameManager despawned. Game will not end.", 5f);
+                }
+                catch
+                {
+                    ZeroMenu.Plugin.notifications.Send("No Game End", "Failed to despawn GameManager.", 5f);
+                }
+            }
+        }
+
+        [HarmonyPatch(typeof(GameManager), nameof(GameManager.StartGame))]
+        public static class NoGameEndOnLoadPatch
+        {
+            public static void Postfix()
+            {
+                if (!DisableGameEndNonHost) return;
+                if (AmongUsClient.Instance == null || AmongUsClient.Instance.AmHost) return;
+
+                try
+                {
+                    GameManager.Instance.Despawn();
+                }
+                catch { }
+            }
+        }
+
+        [HarmonyPatch(typeof(InnerNetObjectCollection), nameof(InnerNetObjectCollection.TryAddNetObject))]
+        public static class NoGameEndOnSpawnPatch
+        {
+            public static void Postfix(InnerNetObject obj)
+            {
+                if (!DisableGameEndNonHost) return;
+                if (AmongUsClient.Instance == null || AmongUsClient.Instance.AmHost) return;
+
+                try
+                {
+                    if (obj != null && obj.TryCast<GameManager>() != null)
+                        obj.Despawn();
+                }
+                catch { }
+            }
+        }
 
         public static void TriggerAllSpores()
         {
