@@ -9,7 +9,8 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <AmongUsDir>youramongusexedirection</AmongUsDir>
+    <!-- put your among us .exe direction (/) -->
+    <AmongUsDir>youramongusexedirection</AmongUsDir> <!-- <----- -->
     <BepInExCore>$(AmongUsDir)\BepInEx\core</BepInExCore>
     <BepInExInterop>$(AmongUsDir)\BepInEx\interop</BepInExInterop>
   </PropertyGroup>
