@@ -5,6 +5,7 @@ using TMPro;
 using UnityEngine;
 using AmongUs.Data;
 using AmongUs.QuickChat;
+using Hazel; 
 
 namespace ZeroMenu.Functions
 {
@@ -33,6 +34,47 @@ namespace ZeroMenu.Functions
             }
         }
 
+
+        public static void SendQuickChatById(int id)
+     
+    {
+        try
+        {
+            if (PlayerControl.LocalPlayer == null) return;
+
+          
+            var writer = AmongUsClient.Instance.StartRpcImmediately(
+                PlayerControl.LocalPlayer.NetId,
+                (byte)33, 
+                SendOption.Reliable,
+                -1
+            );
+            writer.Write((byte)3);
+            writer.Write((ushort)78);
+            writer.Write((byte)1);
+            writer.Write((byte)2);
+            writer.Write((ushort)id); 
+            AmongUsClient.Instance.FinishRpcImmediately(writer);
+
+           
+            var selfWriter = AmongUsClient.Instance.StartRpcImmediately(
+                PlayerControl.LocalPlayer.NetId,
+                (byte)33,
+                SendOption.Reliable,
+                (int)PlayerControl.LocalPlayer.OwnerId
+            );
+            selfWriter.Write((byte)3);
+            selfWriter.Write((ushort)78);
+            selfWriter.Write((byte)1);
+            selfWriter.Write((byte)2);
+            selfWriter.Write((ushort)id);
+            AmongUsClient.Instance.FinishRpcImmediately(selfWriter);
+        }
+          catch (Exception ex)
+           {
+             Debug.LogError("error en sendquickchatbyid: " + ex.Message);
+           }
+    }
         [HarmonyPatch(typeof(ChatController), "SendChat")]
         public static class ChatController_SendChat
         {
