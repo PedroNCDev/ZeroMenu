@@ -95,7 +95,7 @@ namespace ZeroMenu.Tabs
 
                 if (GUILayout.Button(btn.label, GUILayout.Width(40), GUILayout.Height(30)))
                 {
-                    ColouredChat.SendQuickChatById(btn.id);
+                    Chat.SendQuickChatById(btn.id);
                 }
 
                 GUI.backgroundColor = defaultBackground;
