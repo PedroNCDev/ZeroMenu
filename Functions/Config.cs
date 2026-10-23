@@ -1,133 +1,205 @@
 using System;
-using System.IO;
-using System.Reflection;
-using System.Text.Json;
-using BepInEx;
-using BepInEx.Configuration;
-using BepInEx.Logging;
+using System.Text.RegularExpressions;
+using HarmonyLib;
+using TMPro;
 using UnityEngine;
-using ZeroMenu.Functions;
+using AmongUs.Data;
+using AmongUs.QuickChat;
+using Hazel; 
 
 namespace ZeroMenu.Functions
 {
-    public static class Config
+    public static class Chat
     {
-        public static KeyCode MenuKey = KeyCode.Delete;
-        public static string MenuHtmlColor = "#FFFFFF";
-        public static bool OpenOnMouse = false;
-        public static bool AutoLoadProfile = false;
-        public static bool LogChatMessages = false;
+        public static bool EnableChat = false;
+        public static bool BypassUrlBlock = false;
+        public static bool LowerRateLimits = false;
+        public static bool DarkMode = false;
+        public static bool UnlockCharacters = false;
+        public static bool LongerMessages = false;
+        public static bool UnlockClipboard = false;
+        public static bool ColorAsPlayer = false;
+        public static bool ChangeChatColor = false;
+        public static string MenuChatColor = "";
 
-        private static readonly ManualLogSource Log = BepInEx.Logging.Logger.CreateLogSource("ZeroMenu.Config");
-        private static string ConfigPath => Path.Combine(Paths.ConfigPath, "ZeroMenu.json");
-        private static string ProfilePath => Path.Combine(Paths.ConfigPath, "ZeroMenu_Profile.json");
-
-        public class ConfigData
+        [HarmonyPatch(typeof(ChatController), "Update")]
+        public static class ChatController_Update
         {
-            public string MenuKey { get; set; } = "Delete";
-            public string MenuHtmlColor { get; set; } = "#FFFFFF";
-            public bool OpenOnMouse { get; set; } = false;
-            public bool AutoLoadProfile { get; set; } = false;
-            public bool LogChatMessages { get; set; } = false;
-
-            public bool SpoofGuestMode { get; set; } = false;
-            public bool SpoofFriendCode { get; set; } = false;
-            public string SpoofLevel { get; set; } = "1";
-            public bool SpoofDeviceId { get; set; } = false;
-            public bool SpoofAprilFools { get; set; } = false;
-            public string PlatformName { get; set; } = "TESTNAME";
-            public bool SpoofVersion { get; set; } = false;
-            public int SpoofedVersion { get; set; } = 50632950;
-            public bool UseModdedProtocol { get; set; } = false;
-            public int SpoofedPlatform { get; set; } = 1;
-        }
-
-        public static void SaveConfig(bool isProfile = false)
-        {
-            try
+            public static void Postfix(ChatController __instance)
             {
-                var data = new ConfigData
+                if (__instance.freeChatField != null && __instance.freeChatField.textArea != null)
                 {
-                    MenuKey = MenuKey.ToString(),
-                    MenuHtmlColor = MenuHtmlColor,
-                    OpenOnMouse = OpenOnMouse,
-                    AutoLoadProfile = AutoLoadProfile,
-                    LogChatMessages = LogChatMessages,
-                    SpoofGuestMode = Spoof.GuestMode,
-                    SpoofFriendCode = Spoof.FriendCodeSpoof,
-                    SpoofLevel = Spoof.SpoofLevelStr,
-                    SpoofDeviceId = Passive.SpoofDeviceId,
-                    SpoofAprilFools = Passive.SpoofAprilFoolsDate,
-                    PlatformName = Spoof.PlatformNameStr,
-                    SpoofVersion = Spoof.ShouldSpoofVersion,
-                    SpoofedVersion = Spoof.SpoofedVersion,
-                    UseModdedProtocol = Spoof.UseModdedProtocol,
-                    SpoofedPlatform = (int)Spoof.SpoofedPlatform
-                };
-                string json = JsonSerializer.Serialize(data, new JsonSerializerOptions { WriteIndented = true });
-                File.WriteAllText(isProfile ? ProfilePath : ConfigPath, json);
-                ZeroMenu.Plugin.notifications.Send("Config", isProfile ? "Profile saved!" : "Config saved!", 3f);
-            }
-            catch (Exception e)
-            {
-                Log.LogError($"Failed to save config: {e.Message}");
+                    __instance.freeChatField.textArea.characterLimit = LongerMessages ? 120 : 100;
+                }
             }
         }
 
-        public static void LoadConfig(bool isProfile = false)
+
+        public static void SendQuickChatById(int id)
+     
+    {
+        try
         {
-            try
-            {
-                string path = isProfile ? ProfilePath : ConfigPath;
-                if (!File.Exists(path)) return;
+            if (PlayerControl.LocalPlayer == null) return;
 
-                string json = File.ReadAllText(path);
-                var data = JsonSerializer.Deserialize<ConfigData>(json);
-                if (data == null) return;
+          
+            var writer = AmongUsClient.Instance.StartRpcImmediately(
+                PlayerControl.LocalPlayer.NetId,
+                (byte)33, 
+                SendOption.Reliable,
+                -1
+            );
+            writer.Write((byte)3);
+            writer.Write((ushort)78);
+            writer.Write((byte)1);
+            writer.Write((byte)2);
+            writer.Write((ushort)id); 
+            AmongUsClient.Instance.FinishRpcImmediately(writer);
 
-                MenuKey = (KeyCode)Enum.Parse(typeof(KeyCode), data.MenuKey, true);
-                MenuHtmlColor = data.MenuHtmlColor;
-                OpenOnMouse = data.OpenOnMouse;
-                AutoLoadProfile = data.AutoLoadProfile;
-                LogChatMessages = data.LogChatMessages;
-                Spoof.GuestMode = data.SpoofGuestMode;
-                Spoof.FriendCodeSpoof = data.SpoofFriendCode;
-                Spoof.SpoofLevelStr = data.SpoofLevel;
-                Passive.SpoofDeviceId = data.SpoofDeviceId;
-                Passive.SpoofAprilFoolsDate = data.SpoofAprilFools;
-                Spoof.PlatformNameStr = data.PlatformName;
-                Spoof.ShouldSpoofVersion = data.SpoofVersion;
-                Spoof.SpoofedVersion = data.SpoofedVersion;
-                Spoof.UseModdedProtocol = data.UseModdedProtocol;
-                Spoof.SpoofedPlatform = (Platforms)data.SpoofedPlatform;
-
-                ZeroMenu.Plugin.notifications.Send("Config", isProfile ? "Profile loaded!" : "Config loaded!", 3f);
-            }
-            catch (Exception e)
-            {
-                Log.LogError($"Failed to load config: {e.Message}");
-            }
+           
+            var selfWriter = AmongUsClient.Instance.StartRpcImmediately(
+                PlayerControl.LocalPlayer.NetId,
+                (byte)33,
+                SendOption.Reliable,
+                (int)PlayerControl.LocalPlayer.OwnerId
+            );
+            selfWriter.Write((byte)3);
+            selfWriter.Write((ushort)78);
+            selfWriter.Write((byte)1);
+            selfWriter.Write((byte)2);
+            selfWriter.Write((ushort)id);
+            AmongUsClient.Instance.FinishRpcImmediately(selfWriter);
         }
-
-        public static void OpenConfigFile()
+          catch (Exception ex)
+           {
+             Debug.LogError("error en sendquickchatbyid: " + ex.Message);
+           }
+    }
+        [HarmonyPatch(typeof(ChatController), "SendChat")]
+        public static class ChatController_SendChat
         {
-            string path = Path.Combine(Paths.ConfigPath, "ZeroMenu.json");
-            if (!File.Exists(path))
+            public static void Postfix(ChatController __instance)
             {
-                ZeroMenu.Plugin.notifications.Send("Config", "Config file doesn't exist yet. Save it first!", 3f);
-                return;
-            }
-            try
-            {
-                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                if (!LowerRateLimits) return;
+                if (__instance.timeSinceLastMessage == 0f)
                 {
-                    FileName = path,
-                    UseShellExecute = true
+                    __instance.timeSinceLastMessage += 1f;
+                }
+            }
+        }
+
+        [HarmonyPatch(typeof(ChatController), "SendFreeChat")]
+        public static class ChatController_SendFreeChat
+        {
+            public static bool Prefix(ChatController __instance)
+            {
+                if (!BypassUrlBlock) return true;
+
+                string text = __instance.freeChatField.Text;
+                string modifiedText = CensorUrlsAndEmails(text);
+
+                ChatController.Logger.Debug("SendFreeChat () :: Sending message: '" + modifiedText + "'", null);
+                PlayerControl.LocalPlayer.RpcSendChat(modifiedText);
+
+                return false;
+            }
+
+            private static string CensorUrlsAndEmails(string text)
+            {
+                string pattern = @"(http[s]?://)?([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,6}(/[\w-./?%&=]*)?|([a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+)";
+                Regex regex = new Regex(pattern);
+                return regex.Replace(text, match =>
+                {
+                    var censored = match.Value;
+                    censored = censored.Replace('.', ',');
+                    return censored;
                 });
             }
-            catch (Exception e)
+        }
+
+        [HarmonyPatch(typeof(ChatController), "AddChat")]
+        public static class ChatColorGlobalPatch
+        {
+            [HarmonyPriority(600)]
+            public static void Prefix(PlayerControl sourcePlayer, ref string chatText)
             {
-                Log.LogError($"Failed to open config: {e.Message}");
+                if (ChangeChatColor && ColorAsPlayer)
+                {
+                    ChangeChatColor = false;
+                    ColorAsPlayer = false;
+                }
+                else if (ChangeChatColor && !string.IsNullOrEmpty(MenuChatColor))
+                {
+                    chatText = $"<color={MenuChatColor}>{chatText}</color>";
+                }
+                else if (ColorAsPlayer && sourcePlayer != null && sourcePlayer.Data != null)
+                {
+                    if (sourcePlayer.Data.DefaultOutfit != null)
+                    {
+                        int colorId = sourcePlayer.Data.DefaultOutfit.ColorId;
+                        if (colorId >= 0 && colorId < Palette.PlayerColors.Length)
+                        {
+                            Color pColor = Palette.PlayerColors[colorId];
+                            string hex = "#" + ColorUtility.ToHtmlStringRGB(pColor);
+                            chatText = $"<color={hex}>{chatText}</color>";
+                        }
+                    }
+                }
+            }
+        }
+
+        [HarmonyPatch(typeof(ChatController), "Update")]
+        public static class DarkMode_ChatControllerPatch
+        {
+            [HarmonyPostfix]
+            public static void Postfix(ChatController __instance)
+            {
+                if (!DarkMode) return;
+                try
+                {
+                    if (__instance.freeChatField != null && __instance.freeChatField.background != null)
+                    {
+                        __instance.freeChatField.background.color = new Color32(40, 40, 40, byte.MaxValue);
+                    }
+                    if (__instance.freeChatField != null && __instance.freeChatField.textArea != null && __instance.freeChatField.textArea.outputText != null)
+                    {
+                        __instance.freeChatField.textArea.outputText.color = Color.white;
+                    }
+                    if (__instance.quickChatField != null && __instance.quickChatField.background != null)
+                    {
+                        __instance.quickChatField.background.color = new Color32(40, 40, 40, byte.MaxValue);
+                    }
+                    if (__instance.quickChatField != null && __instance.quickChatField.text != null)
+                    {
+                        __instance.quickChatField.text.color = Color.white;
+                    }
+                }
+                catch { }
+            }
+        }
+
+        [HarmonyPatch(typeof(ChatBubble), "SetText")]
+        public static class DarkMode_ChatBubblePatch
+        {
+            [HarmonyPrefix]
+            public static void Prefix(ChatBubble __instance, ref string chatText)
+            {
+                if (!DarkMode) return;
+                try
+                {
+                    Transform backgroundTransform = __instance.transform.Find("Background");
+                    SpriteRenderer sprite = backgroundTransform != null ? backgroundTransform.GetComponent<SpriteRenderer>() : null;
+                    if (sprite != null)
+                    {
+                        sprite.color = new Color(0.15f, 0.15f, 0.15f, 1f);
+                    }
+                    
+                    if (!chatText.Contains("░") && !chatText.Contains("▄") && !chatText.Contains("█") && !chatText.Contains("▌") && !chatText.Contains("▒"))
+                    {
+                        chatText = "<color=#FFFFFF>" + chatText.TrimEnd('\0') + "</color>";
+                    }
+                }
+                catch { }
             }
         }
     }
