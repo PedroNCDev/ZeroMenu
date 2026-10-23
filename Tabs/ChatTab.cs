@@ -21,7 +21,7 @@ namespace ZeroMenu.Tabs
                 _initialized = true;
             }
 
-            _scrollPosition = SmoothScrollView.Begin(_scrollPosition, new GUILayoutOption[0]);
+            _scrollPosition = SmoothScrollView.Begin(_scrollPosition, (Il2CppReferenceArray<GUILayoutOption>)null);
             GUILayout.BeginVertical(new Il2CppReferenceArray<GUILayoutOption>(new GUILayoutOption[] { GUILayout.Width((float)MainUI.windowWidth * 0.425f) }));
 
             Chat.EnableChat = CustomToggle.Draw(Chat.EnableChat, "Enable Chat", "EnableChat");
@@ -54,8 +54,60 @@ namespace ZeroMenu.Tabs
             }
             GUILayout.EndHorizontal();
 
+            GUILayout.Space(15f);
+            GUILayout.Label("Coloured Chat (send emotes)", MenuStyles.BoldLabel, new Il2CppReferenceArray<GUILayoutOption>(0));
+            GUILayout.Label("Each button sends a coloured quick-chat entry to the lobby.", new GUIStyle(GUI.skin.label) { fontSize = 10, normal = { textColor = Color.gray } });
+            GUILayout.Space(5f);
+
+            var quickChatButtons = new (string label, Color color, int id)[]
+            {
+                ("1",  new Color(0.8f, 0.2f, 0.2f), 1912),
+                ("2",  new Color(0.2f, 0.6f, 0.8f), 197),
+                ("3",  new Color(0.2f, 0.7f, 0.5f), 155),
+                ("4",  new Color(0.6f, 0.4f, 0.8f), 156),
+                ("5",  new Color(0.8f, 0.2f, 0.2f), 1913),
+                ("6",  new Color(0.2f, 0.6f, 0.8f), 198),
+                ("7",  new Color(0.2f, 0.7f, 0.5f), 157),
+                ("8",  new Color(0.6f, 0.4f, 0.8f), 158),
+                ("9",  new Color(0.8f, 0.2f, 0.2f), 1914),
+                ("10", new Color(0.2f, 0.6f, 0.8f), 199),
+                ("11", new Color(0.2f, 0.7f, 0.5f), 159),
+                ("12", new Color(0.6f, 0.4f, 0.8f), 160),
+                ("13", new Color(0.8f, 0.2f, 0.2f), 1915),
+                ("14", new Color(0.2f, 0.6f, 0.8f), 200),
+                ("15", new Color(0.2f, 0.7f, 0.5f), 161)
+            };
+
+            int currentColumn = 0;
+            GUILayout.BeginHorizontal(new Il2CppReferenceArray<GUILayoutOption>(0));
+
+            foreach (var btn in quickChatButtons)
+            {
+                if (currentColumn >= 5)
+                {
+                    GUILayout.EndHorizontal();
+                    GUILayout.BeginHorizontal(new Il2CppReferenceArray<GUILayoutOption>(0));
+                    currentColumn = 0;
+                }
+
+                var defaultBackground = GUI.backgroundColor;
+                GUI.backgroundColor = btn.color;
+
+                if (GUILayout.Button(btn.label, GUILayout.Width(40), GUILayout.Height(30)))
+                {
+                    ColouredChat.SendQuickChatById(btn.id);
+                }
+
+                GUI.backgroundColor = defaultBackground;
+                GUILayout.Space(3f);
+                currentColumn++;
+            }
+
+            GUILayout.EndHorizontal();
+
             GUILayout.EndVertical();
             GUILayout.EndScrollView();
         }
     }
 }
+
