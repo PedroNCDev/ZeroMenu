@@ -10,7 +10,7 @@
 
   <PropertyGroup>
     <!-- put your among us .exe direction (/) -->
-    <AmongUsDir>youramongusexedirection</AmongUsDir> <!-- <----- -->
+    <AmongUsDir>youramongusexedirection</AmongUsDir>
     <BepInExCore>$(AmongUsDir)\BepInEx\core</BepInExCore>
     <BepInExInterop>$(AmongUsDir)\BepInEx\interop</BepInExInterop>
   </PropertyGroup>
@@ -32,6 +32,23 @@
       <HintPath>$(BepInExCore)\0Harmony.dll</HintPath>
       <Private>false</Private>
     </Reference>
+    <Reference Include="Sentry">
+      <HintPath>$(BepInExCore)\Sentry.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+
+    <Reference Include="Assembly-CSharp">
+      <HintPath>$(BepInExInterop)\Assembly-CSharp.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Assembly-CSharp-firstpass">
+      <HintPath>$(BepInExInterop)\Assembly-CSharp-firstpass.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Hazel">
+      <HintPath>$(BepInExInterop)\Hazel.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
     <Reference Include="Il2Cppmscorlib">
       <HintPath>$(BepInExInterop)\Il2Cppmscorlib.dll</HintPath>
       <Private>false</Private>
@@ -40,24 +57,30 @@
       <HintPath>$(BepInExInterop)\Il2CppSystem.Core.dll</HintPath>
       <Private>false</Private>
     </Reference>
-    <Reference Include="Assembly-CSharp">
-      <HintPath>$(BepInExInterop)\Assembly-CSharp.dll</HintPath>
+
+    <Reference Include="Unity.Addressables">
+      <HintPath>$(BepInExInterop)\Unity.Addressables.dll</HintPath>
       <Private>false</Private>
     </Reference>
-    <Reference Include="Hazel">
-      <HintPath>$(BepInExInterop)\Hazel.dll</HintPath>
+    <Reference Include="Unity.ResourceManager">
+      <HintPath>$(BepInExInterop)\Unity.ResourceManager.dll</HintPath>
       <Private>false</Private>
     </Reference>
     <Reference Include="Unity.TextMeshPro">
       <HintPath>$(BepInExInterop)\Unity.TextMeshPro.dll</HintPath>
       <Private>false</Private>
     </Reference>
-    <Reference Include="UnityEngine.UI">
-      <HintPath>$(BepInExInterop)\UnityEngine.UI.dll</HintPath>
-      <Private>false</Private>
-    </Reference>
+
     <Reference Include="UnityEngine.CoreModule">
       <HintPath>$(BepInExInterop)\UnityEngine.CoreModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.AudioModule">
+      <HintPath>$(BepInExInterop)\UnityEngine.AudioModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.ImageConversionModule">
+      <HintPath>$(BepInExInterop)\UnityEngine.ImageConversionModule.dll</HintPath>
       <Private>false</Private>
     </Reference>
     <Reference Include="UnityEngine.IMGUIModule">
@@ -68,21 +91,27 @@
       <HintPath>$(BepInExInterop)\UnityEngine.InputLegacyModule.dll</HintPath>
       <Private>false</Private>
     </Reference>
-    <Reference Include="UnityEngine.TextRenderingModule">
-      <HintPath>$(BepInExInterop)\UnityEngine.TextRenderingModule.dll</HintPath>
-      <Private>false</Private>
-    </Reference>
     <Reference Include="UnityEngine.Physics2DModule">
       <HintPath>$(BepInExInterop)\UnityEngine.Physics2DModule.dll</HintPath>
       <Private>false</Private>
     </Reference>
-    <Reference Include="Unity.Addressables">
-      <HintPath>$(BepInExInterop)\Unity.Addressables.dll</HintPath>
+    <Reference Include="UnityEngine.TextRenderingModule">
+      <HintPath>$(BepInExInterop)\UnityEngine.TextRenderingModule.dll</HintPath>
       <Private>false</Private>
     </Reference>
-    <Reference Include="Assembly-CSharp-firstpass">
-      <HintPath>$(BepInExInterop)\Assembly-CSharp-firstpass.dll</HintPath>
+    <Reference Include="UnityEngine.UI">
+      <HintPath>$(BepInExInterop)\UnityEngine.UI.dll</HintPath>
       <Private>false</Private>
     </Reference>
+    <Reference Include="UnityEngine.UnityWebRequestModule">
+      <HintPath>$(BepInExInterop)\UnityEngine.UnityWebRequestModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="zerobackground.png">
+      <LogicalName>ZeroMenu.zerobackground.png</LogicalName>
+    </EmbeddedResource>
   </ItemGroup>
 </Project>
