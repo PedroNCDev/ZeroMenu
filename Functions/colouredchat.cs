@@ -18,7 +18,7 @@ public class ColouredChat
                 -1
             );
             writer.Write((byte)3);
-            writer.Write((ushort)78);
+            writer.Write((ushort)78);   //im putting it here im too lazy to put it in chat.cs xdd
             writer.Write((byte)1);
             writer.Write((byte)2);
             writer.Write((ushort)id); 
