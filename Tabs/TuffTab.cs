@@ -1,4 +1,3 @@
-using System;
 using UnityEngine;
 using ZeroMenu.Functions;
 using Il2CppInterop.Runtime.InteropTypes.Arrays;
