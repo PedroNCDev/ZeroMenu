@@ -246,7 +246,7 @@ namespace ZeroMenu.Functions
                     Utils.KickPlayer(player, false, true);
                 }
                 catch { }
-                
+
                 yield return new WaitForSeconds(0.1f);
             }
         }
@@ -301,7 +301,7 @@ namespace ZeroMenu.Functions
                 if (!AnnouncedDisconnects.Contains(player.PlayerId))
                 {
                     AnnouncedDisconnects.Add(player.PlayerId);
-                    
+
                     IsShowingCustomMessage = true;
                     if (DestroyableSingleton<HudManager>.InstanceExists && DestroyableSingleton<HudManager>.Instance.Notifier != null)
                     {
@@ -317,13 +317,13 @@ namespace ZeroMenu.Functions
             public static bool Prefix()
             {
                 if (AmongUsClient.Instance != null && AmongUsClient.Instance.AmHost) return false;
-                
+
                 if (IsShowingCustomMessage)
                 {
                     IsShowingCustomMessage = false;
                     return true;
                 }
-                
+
                 return false;
             }
         }
