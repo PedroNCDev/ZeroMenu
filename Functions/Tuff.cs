@@ -2,7 +2,6 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using HarmonyLib;
-using Hazel;
 using InnerNet;
 using UnityEngine;
 using BepInEx.Unity.IL2CPP.Utils.Collections;
@@ -15,16 +14,6 @@ namespace ZeroMenu.Functions
         public static bool OnlyHost = false;
         public static bool AlwaysRed = false;
         public static int LastGameId = 0;
-
-        public static bool ForceHostRunning = false;
-        public static int ForceHostVoteCount = 3;
-        public static float ForceHostVoteDelay = 0.05f;
-        public static float ForceHostExitDelay = 0.6f;
-        public static bool ForceHostStopOnJoinFailure = true;
-        public static int ForceHostHostsKicked = 0;
-
-        private static string _forceHostCurrentCode = "";
-        private static int _forceHostCurrentGameId = 0;
 
         private static bool _hasSentNonHostVotes;
         private static bool _hasSentHostVote;
@@ -60,7 +49,7 @@ namespace ZeroMenu.Functions
             if (AmongUsClient.Instance == null || PlayerControl.LocalPlayer == null) return;
             try
             {
-                MessageWriter mw = MessageWriter.Get((SendOption)1);
+                Hazel.MessageWriter mw = Hazel.MessageWriter.Get((Hazel.SendOption)1);
                 mw.StartMessage((byte)5);
                 mw.Write(AmongUsClient.Instance.GameId);
                 mw.StartMessage((byte)2);
@@ -73,150 +62,6 @@ namespace ZeroMenu.Functions
                 ZeroMenu.Plugin.notifications.Send("Tuff", "Ping sent.", 2f);
             }
             catch { }
-        }
-
-        public static void StartForceHost()
-        {
-            if (ForceHostRunning) return;
-            if (AmongUsClient.Instance == null) return;
-            if (AmongUsClient.Instance.AmHost) return;
-
-            int liveGameId = AmongUsClient.Instance.GameId;
-            string code = liveGameId != 0 ? GameCode.IntToGameName(liveGameId) : "";
-
-            if (string.IsNullOrEmpty(code)) return;
-
-            _forceHostCurrentCode = code;
-            _forceHostCurrentGameId = liveGameId;
-            ForceHostHostsKicked = 0;
-            ForceHostRunning = true;
-
-            ZeroMenu.Plugin.menuUI.StartCoroutine(BepInEx.Unity.IL2CPP.Utils.Collections.CollectionExtensions.WrapToIl2Cpp(ForceHostLoop()));
-        }
-
-        public static void StopForceHost()
-        {
-            if (!ForceHostRunning) return;
-            ForceHostRunning = false;
-        }
-
-        private static IEnumerator ForceHostLoop()
-        {
-            while (ForceHostRunning)
-            {
-                if (AmongUsClient.Instance == null)
-                {
-                    yield return new WaitForSeconds(ForceHostExitDelay);
-                    continue;
-                }
-
-                if (AmongUsClient.Instance.AmHost)
-                {
-                    ForceHostRunning = false;
-                    yield break;
-                }
-
-                if (!IsInGameOrLobby())
-                {
-                    int gameId = _forceHostCurrentGameId;
-                    if (gameId == 0)
-                    {
-                        try { gameId = GameCode.GameNameToIntV2(_forceHostCurrentCode); }
-                        catch { gameId = 0; }
-                    }
-
-                    if (gameId == 0)
-                    {
-                        ForceHostRunning = false;
-                        yield break;
-                    }
-
-                    bool joinFailed = false;
-                    try
-                    {
-                        AmongUsClient.Instance.StartCoroutine(AmongUsClient.Instance.CoJoinOnlineGameFromCode(gameId, true));
-                    }
-                    catch
-                    {
-                        joinFailed = true;
-                    }
-
-                    if (joinFailed)
-                    {
-                        if (ForceHostStopOnJoinFailure)
-                        {
-                            ForceHostRunning = false;
-                            yield break;
-                        }
-
-                        yield return new WaitForSeconds(ForceHostExitDelay);
-                        continue;
-                    }
-
-                    float wait = 0f;
-                    while (wait < 5f && (AmongUsClient.Instance == null || AmongUsClient.Instance.GameState == InnerNetClient.GameStates.NotJoined))
-                    {
-                        yield return null;
-                        wait += Time.deltaTime;
-                    }
-
-                    if (!ForceHostRunning) yield break;
-
-                    if (AmongUsClient.Instance.AmHost)
-                    {
-                        ForceHostRunning = false;
-                        yield break;
-                    }
-
-                    yield return new WaitForSeconds(0.5f);
-                }
-
-                if (VoteBanSystem.Instance != null)
-                {
-                    int hostId = AmongUsClient.Instance.HostId;
-
-                    if (hostId != AmongUsClient.Instance.ClientId)
-                    {
-                        for (int i = 0; i < ForceHostVoteCount; i++)
-                        {
-                            if (!ForceHostRunning) yield break;
-
-                            try { VoteBanSystem.Instance.CmdAddVote(hostId); }
-                            catch { }
-
-                            yield return new WaitForSeconds(ForceHostVoteDelay);
-                        }
-
-                        ForceHostHostsKicked++;
-                    }
-                }
-
-                yield return new WaitForSeconds(0.3f);
-
-                if (AmongUsClient.Instance != null && !AmongUsClient.Instance.AmHost && IsInGameOrLobby())
-                {
-                    try { AmongUsClient.Instance.ExitGame(DisconnectReasons.ExitGame); }
-                    catch { }
-                }
-
-                yield return new WaitForSeconds(ForceHostExitDelay);
-            }
-
-            ForceHostRunning = false;
-        }
-
-        private static bool IsInGameOrLobby()
-        {
-            try
-            {
-                if (AmongUsClient.Instance == null) return false;
-                if (AmongUsClient.Instance.GameState != InnerNetClient.GameStates.NotJoined)
-                    return true;
-
-                string scene = UnityEngine.SceneManagement.SceneManager.GetActiveScene().name;
-                return scene != "MainMenu" && scene != "MatchMaking";
-            }
-            catch { return false; }
         }
 
         public static void DisconnectAllPlayers()
