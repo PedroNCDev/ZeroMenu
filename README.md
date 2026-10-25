@@ -120,7 +120,6 @@ Miscellaneous tools.
 *   **Votekick Everyone**: Votekicks all players.
 *   **Votekick Only Host**: Votekicks only the host.
 *   **Always Red**: Forces your color to Red.
-*   **Force Host**: Force yourself to become the host.
 *   **Rejoin Last Game**: Rejoins the last lobby.
 *   **Set Ping**: Sends a ping to the server.
 *   **Disconnect All Players**: Disconnects all other players.
