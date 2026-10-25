@@ -11,8 +11,6 @@ namespace ZeroMenu.Tabs
 
         private static bool _doRejoin = false;
         private static bool _doSetPing = false;
-        private static bool _doForceHost = false;
-        private static bool _doStopForceHost = false;
         private static bool _doDisconnectAll = false;
 
         public void Draw()
@@ -25,12 +23,6 @@ namespace ZeroMenu.Tabs
             Tuff.AlwaysRed = CustomToggle.Draw(Tuff.AlwaysRed, "Always Red", "TuffAlwaysRed");
 
             GUILayout.Space(15f);
-
-            if (CustomButton.Draw(Tuff.ForceHostRunning ? "Stop Force Host" : "Force Host"))
-            {
-                if (Tuff.ForceHostRunning) _doStopForceHost = true;
-                else _doForceHost = true;
-            }
 
             if (CustomButton.Draw("Rejoin Last Game"))
             {
@@ -62,16 +54,6 @@ namespace ZeroMenu.Tabs
             {
                 Tuff.SetPing();
                 _doSetPing = false;
-            }
-            if (_doForceHost)
-            {
-                Tuff.StartForceHost();
-                _doForceHost = false;
-            }
-            if (_doStopForceHost)
-            {
-                Tuff.StopForceHost();
-                _doStopForceHost = false;
             }
             if (_doDisconnectAll)
             {
