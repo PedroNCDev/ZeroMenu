@@ -140,7 +140,7 @@ namespace ZeroMenu
             }
 
             GUILayout.Space(10f);
-            GUILayout.Label("ZeroMenu v1.0.4", MenuStyles.Title, new Il2CppReferenceArray<GUILayoutOption>(0));
+            GUILayout.Label("ZeroMenu v1.0.5", MenuStyles.Title, new Il2CppReferenceArray<GUILayoutOption>(0));
             GUILayout.Space(10f);
 
             float tabWidth = 75f;
