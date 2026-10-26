@@ -20,7 +20,7 @@ namespace ZeroMenu
 
         public override void Load()
         {
-            Log.LogInfo("ZeroMenu cargado correctamente!");
+            Log.LogInfo("ZeroMenu loaded correct!");
 
             HostSettings.Initialize(Log);
 
