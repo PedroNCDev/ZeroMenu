@@ -64,7 +64,8 @@ namespace ZeroMenu
                     stream.CopyTo(ms);
                     _backgroundTexture = new Texture2D(2, 2, TextureFormat.RGBA32, false);
                     _backgroundTexture.LoadImage(ms.ToArray());
-                    
+
+                    // I think you can change the background opacity here :d
                     Color[] pixels = _backgroundTexture.GetPixels();
                     for (int i = 0; i < pixels.Length; i++)
                     {
