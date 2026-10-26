@@ -65,7 +65,6 @@ namespace ZeroMenu
                     _backgroundTexture = new Texture2D(2, 2, TextureFormat.RGBA32, false);
                     _backgroundTexture.LoadImage(ms.ToArray());
                     
-                    // AQUÍ SE MODIFICA LA OPACIDAD DE LA IMAGEN DIRECTAMENTE (0.30f = 30%)
                     Color[] pixels = _backgroundTexture.GetPixels();
                     for (int i = 0; i < pixels.Length; i++)
                     {
