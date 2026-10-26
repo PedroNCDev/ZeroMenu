@@ -1,6 +1,5 @@
 using UnityEngine;
 using Il2CppSystem.Collections.Generic;
-using System.Linq;
 
 namespace ZeroMenu.Utilities
 {
@@ -15,7 +14,13 @@ namespace ZeroMenu.Utilities
         public static RoleBehaviour GetBehaviourByRoleType(AmongUs.GameOptions.RoleTypes roleType)
         {
             if (RoleManager.Instance == null || RoleManager.Instance.AllRoles == null) return null;
-            return RoleManager.Instance.AllRoles.FirstOrDefault(r => r.Role == roleType);
+            
+            foreach (var role in RoleManager.Instance.AllRoles)
+            {
+                if (role.Role == roleType)
+                    return role;
+            }
+            return null;
         }
 
         public static ShapeshifterMinigame GetShapeshifterMenu()
