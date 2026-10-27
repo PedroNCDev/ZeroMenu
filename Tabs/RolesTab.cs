@@ -1,6 +1,9 @@
 using System;
 using UnityEngine;
 using ZeroMenu.Functions;
+using ZeroMenu.Utilities;
+using Il2CppInterop.Runtime.InteropTypes.Arrays;
+using AmongUs.GameOptions;
 
 namespace ZeroMenu.Tabs
 {
@@ -17,6 +20,32 @@ namespace ZeroMenu.Tabs
             if (PlayerControl.LocalPlayer == null || PlayerControl.LocalPlayer.Data == null)
             {
                 GUILayout.Label("You are not currently in a game.", MenuStyles.Label, System.Array.Empty<GUILayoutOption>());
+            }
+            else
+            {
+                GUILayout.Label("Player Status", MenuStyles.BoldLabel, System.Array.Empty<GUILayoutOption>());
+                
+                if (AmongUsClient.Instance.AmHost)
+                {
+                    if (CustomButton.Draw("Set Role")) 
+                    {
+                        RolesPPM.SetFakeRolePPM();
+                    }
+                }
+                else
+                {
+                    if (CustomButton.Draw("Set Role (visual)")) 
+                    {
+                        RolesPPM.SetFakeRolePPM();
+                    }
+                }
+
+                if (CustomButton.Draw("Set Alive (visual)")) 
+                {
+                    RolesPPM.SetFakeAlivePPM();
+                }
+
+                GUILayout.Space(10f);
             }
 
             GUILayout.Label("Impostor", MenuStyles.BoldLabel, System.Array.Empty<GUILayoutOption>());
