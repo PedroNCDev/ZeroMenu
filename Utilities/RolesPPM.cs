@@ -28,7 +28,10 @@ namespace ZeroMenu.Utilities
                     playerDataList.Add(PlayerPickMenu.CustomPPMChoice("Phantom", OutfitPreset.Phantom, PlayerPickMenu.GetBehaviourByRoleType(RoleTypes.Phantom)));
 
                 if (oldRole == RoleTypes.Viper || Utils.IsFreePlay || isHost)
+                {
                     playerDataList.Add(PlayerPickMenu.CustomPPMChoice("Viper", OutfitPreset.Viper, PlayerPickMenu.GetBehaviourByRoleType(RoleTypes.Viper)));
+                    playerDataList.Add(PlayerPickMenu.CustomPPMChoice("Vipershifter", OutfitPreset.Vipershifter, PlayerPickMenu.GetBehaviourByRoleType(RoleTypes.Viper)));
+                }
 
                 if (PlayerControl.LocalPlayer.Data.Role.TeamType == RoleTeamTypes.Impostor || Utils.IsFreePlay || isHost)
                     playerDataList.Add(PlayerPickMenu.CustomPPMChoice("Impostor", OutfitPreset.Impostor, PlayerPickMenu.GetBehaviourByRoleType(RoleTypes.Impostor)));
@@ -54,6 +57,8 @@ namespace ZeroMenu.Utilities
 
             PlayerPickMenu.OpenPlayerPickMenu(playerDataList, (Il2CppSystem.Action)(() =>
             {
+                var chosenName = PlayerPickMenu.targetPlayerData.DefaultOutfit.PlayerName;
+
                 if (isHost)
                 {
                     if (PlayerControl.LocalPlayer.Data.IsDead)
@@ -75,12 +80,23 @@ namespace ZeroMenu.Utilities
                         if (PlayerPickMenu.targetPlayerData.Role.Role == RoleTypes.GuardianAngel || PlayerPickMenu.targetPlayerData.Role.Role == RoleTypes.SpiritGuide)
                             RoleManager.Instance.SetRole(PlayerControl.LocalPlayer, PlayerPickMenu.targetPlayerData.Role.Role);
                         else
-                            RoleManager.Instance.SetRole(PlayerControl.LocalPlayer, PlayerPickMenu.targetPlayerData.Role.TeamType == RoleTeamTypes.Impostor ? RoleTypes.ImpostorGhost : RoleTypes.CrewmateGhost);
+                            RoleManager.Instance.SetRole(PlayerControl.LocalPlayer, PlayerPickMenu.targetPlayerData.Role.Role == RoleTypes.Impostor ? RoleTypes.ImpostorGhost : RoleTypes.CrewmateGhost);
                     }
                     else
                     {
                         RoleManager.Instance.SetRole(PlayerControl.LocalPlayer, PlayerPickMenu.targetPlayerData.Role.Role);
                     }
+                }
+
+                if (chosenName == "Vipershifter")
+                {
+                    Vipershifter.Enabled = true;
+                    Vipershifter.LoadSprites();
+                    ZeroMenu.Plugin.notifications.Send("Vipershifter", "yes", 3f);
+                }
+                else
+                {
+                    Vipershifter.Enabled = false;
                 }
             }));
         }
