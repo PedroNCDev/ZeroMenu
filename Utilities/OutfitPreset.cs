@@ -31,6 +31,13 @@ namespace ZeroMenu.Utilities
             VisorId = "visor_animesunglassesVisor"
         };
 
+        public static NetworkedPlayerInfo.PlayerOutfit Vipershifter = new()
+        {
+            ColorId = 3,
+            HatId = "hat_pk05_Fedora",
+            SkinId = "skin_SuitB"
+        };
+
         public static NetworkedPlayerInfo.PlayerOutfit Impostor = new()
         {
             ColorId = 0
@@ -45,7 +52,7 @@ namespace ZeroMenu.Utilities
         public static NetworkedPlayerInfo.PlayerOutfit Judge = new()
         {
             ColorId = 10,
-            HatId = "hat_wigJudge",
+            HatId = "hat_wigJudge"
         };
 
         public static NetworkedPlayerInfo.PlayerOutfit SpiritGuide = new()
