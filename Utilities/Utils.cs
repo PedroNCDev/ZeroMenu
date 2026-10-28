@@ -11,6 +11,7 @@ using AmongUs.InnerNet.GameDataMessages;
 using System.Runtime.CompilerServices;
 using System.IO;
 using BepInEx;
+using ZeroMenu.Utilities;
 
 namespace ZeroMenu.Functions
 {
@@ -194,7 +195,7 @@ namespace ZeroMenu.Functions
 
             try
             {
-                Utilities.BatchedMessage batch = new Utilities.BatchedMessage(player.OwnerId);
+                BatchedMessage batch = new BatchedMessage(player.OwnerId);
 
                 MessageWriter writer = MessageWriter.Get(SendOption.Reliable);
                 writer.Write((ushort)0);
@@ -231,7 +232,7 @@ namespace ZeroMenu.Functions
                 writer.WriteBytesAndSize(GameManager.Instance.LogicOptions.gameOptionsFactory.ToBytes(options, false));
                 writer.EndMessage();
                 
-                var batch = new Utilities.BatchedMessage(target.OwnerId);
+                var batch = new BatchedMessage(target.OwnerId);
                 batch.QueueDataFlag(GameManager.Instance.NetId, writer);
                 batch.FinishBatch();
                 writer.Recycle();
@@ -317,6 +318,156 @@ namespace ZeroMenu.Functions
             catch (Exception e)
             {
                 UnityEngine.Debug.LogError($"[ZeroMenu.Config] Failed to open config: {e.Message}");
+            }
+        }
+    }
+
+    public static class Vipershifter
+    {
+        public static bool Enabled = false;
+        public static bool IsShifted = false;
+        
+        private static Sprite _mutarSprite;
+        private static Sprite _anularSprite;
+        public static ActionButton VipershifterButton;
+
+        public static void LoadSprites()
+        {
+            if (_mutarSprite != null) return;
+
+            try
+            {
+                var assembly = typeof(Vipershifter).Assembly;
+                
+                using var stream1 = assembly.GetManifestResourceStream("ZeroMenu.shapefist1.png");
+                if (stream1 != null)
+                {
+                    using var ms1 = new MemoryStream();
+                    stream1.CopyTo(ms1);
+                    var tex1 = new Texture2D(2, 2, TextureFormat.RGBA32, false);
+                    tex1.LoadImage(ms1.ToArray());
+                    _mutarSprite = Sprite.Create(tex1, new Rect(0, 0, tex1.width, tex1.height), new Vector2(0.5f, 0.5f), 100f);
+                    _mutarSprite.hideFlags = HideFlags.HideAndDontSave;
+                }
+
+                using var stream2 = assembly.GetManifestResourceStream("ZeroMenu.shapefist2.png");
+                if (stream2 != null)
+                {
+                    using var ms2 = new MemoryStream();
+                    stream2.CopyTo(ms2);
+                    var tex2 = new Texture2D(2, 2, TextureFormat.RGBA32, false);
+                    tex2.LoadImage(ms2.ToArray());
+                    _anularSprite = Sprite.Create(tex2, new Rect(0, 0, tex2.width, tex2.height), new Vector2(0.5f, 0.5f), 100f);
+                    _anularSprite.hideFlags = HideFlags.HideAndDontSave;
+                }
+            }
+            catch (System.Exception e)
+            {
+                UnityEngine.Debug.LogError("Error loading Vipershifter sprites: " + e.Message);
+            }
+        }
+
+        public static void OpenShiftMenu()
+        {
+            Il2CppSystem.Collections.Generic.List<NetworkedPlayerInfo> playerList = new Il2CppSystem.Collections.Generic.List<NetworkedPlayerInfo>();
+            foreach (var pc in PlayerControl.AllPlayerControls)
+            {
+                if (pc != null && pc.Data != null && !pc.Data.Disconnected && !pc.Data.IsDead && pc != PlayerControl.LocalPlayer)
+                {
+                    playerList.Add(pc.Data);
+                }
+            }
+
+            PlayerPickMenu.OpenPlayerPickMenu(playerList, (Il2CppSystem.Action)(() =>
+            {
+                var target = PlayerPickMenu.targetPlayerData?.Object;
+                if (target != null)
+                {
+                    PlayerControl.LocalPlayer.Shapeshift(target, true);
+                    IsShifted = true;
+                }
+            }));
+        }
+
+        public static void RevertShift()
+        {
+            PlayerControl.LocalPlayer.Shapeshift(PlayerControl.LocalPlayer, true);
+            IsShifted = false;
+        }
+
+        [HarmonyPatch(typeof(HudManager), nameof(HudManager.Update))]
+        public static class HudManager_Update_Patch
+        {
+            public static void Postfix(HudManager __instance)
+            {
+                if (!Enabled || PlayerControl.LocalPlayer == null || PlayerControl.LocalPlayer.Data == null) 
+                {
+                    if (VipershifterButton != null) VipershifterButton.gameObject.SetActive(false);
+                    return;
+                }
+
+                if (PlayerControl.LocalPlayer.Data.RoleType != RoleTypes.Viper || MeetingHud.Instance != null || ExileController.Instance != null || PlayerControl.LocalPlayer.Data.IsDead)
+                {
+                    if (VipershifterButton != null) VipershifterButton.gameObject.SetActive(false);
+                    return;
+                }
+
+                if (VipershifterButton == null)
+                {
+                    VipershifterButton = UnityEngine.Object.Instantiate(__instance.AbilityButton, __instance.AbilityButton.transform.parent);
+                    VipershifterButton.transform.localPosition = __instance.ImpostorVentButton.transform.localPosition + new Vector3(-1.2f, 0f, 0f); 
+                    
+                    var ventRect = __instance.ImpostorVentButton.GetComponent<RectTransform>();
+                    var vipRect = VipershifterButton.GetComponent<RectTransform>();
+                    
+                    if (ventRect != null && vipRect != null)
+                    {
+                        vipRect.sizeDelta = ventRect.sizeDelta;
+                        vipRect.localScale = ventRect.localScale;
+                    }
+                    
+                    var passiveButton = VipershifterButton.GetComponent<PassiveButton>();
+                    if (passiveButton != null) 
+                    {
+                        passiveButton.OnClick = new UnityEngine.UI.Button.ButtonClickedEvent();
+                        passiveButton.OnClick.AddListener((UnityEngine.Events.UnityAction)(() =>
+                        {
+                            if (IsShifted) RevertShift();
+                            else OpenShiftMenu();
+                        }));
+                    }
+                }
+
+                VipershifterButton.gameObject.SetActive(true);
+                VipershifterButton.OverrideText("");
+                VipershifterButton.SetCoolDown(0f, 100f);
+                
+                VipershifterButton.graphic.sprite = IsShifted ? _anularSprite : _mutarSprite;
+                
+                if (VipershifterButton.cooldownTimerText != null) 
+                    VipershifterButton.cooldownTimerText.gameObject.SetActive(false);
+            }
+        }
+
+        [HarmonyPatch(typeof(ActionButton), nameof(ActionButton.DoClick))]
+        public static class ActionButton_DoClick_Patch
+        {
+            public static bool Prefix(ActionButton __instance)
+            {
+                if (__instance == VipershifterButton)
+                {
+                    return false; 
+                }
+                return true;
+            }
+        }
+
+        [HarmonyPatch(typeof(HudManager), nameof(HudManager.Start))]
+        public static class HudManager_Start_Patch
+        {
+            public static void Postfix()
+            {
+                VipershifterButton = null;
             }
         }
     }
