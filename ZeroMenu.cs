@@ -12,7 +12,7 @@ namespace ZeroMenu
     {
         public const string PluginGuid = "com.mies.zeromenu";
         public const string PluginName = "ZeroMenu";
-        public const string PluginVersion = "1.0.5";
+        public const string PluginVersion = "1.0.6";
 
         public static MainUI menuUI;
         public static NotificationManager notifications;
