@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using HarmonyLib;
+using Hazel;
 using InnerNet;
 using UnityEngine;
 using BepInEx.Unity.IL2CPP.Utils.Collections;
@@ -44,12 +45,36 @@ namespace ZeroMenu.Functions
             }
         }
 
+        public static void CopyLastGameCode()
+        {
+            if (LastGameId == 0)
+            {
+                ZeroMenu.Plugin.notifications.Send("Tuff", "No game code has been saved yet.", 3f);
+                return;
+            }
+
+            try
+            {
+                string code = GameCode.IntToGameName(LastGameId);
+                if (!string.IsNullOrEmpty(code))
+                {
+                    GUIUtility.systemCopyBuffer = code;
+                    ZeroMenu.Plugin.notifications.Send("Tuff", $"Copied lobby code to clipboard: {code}", 3f);
+                }
+            }
+            catch (Exception e)
+            {
+                ZeroMenu.Plugin.notifications.Send("Tuff", "Failed to copy code.", 3f);
+                UnityEngine.Debug.LogError("[ZeroMenu] CopyLastGameCode error: " + e);
+            }
+        }
+
         public static void SetPing()
         {
             if (AmongUsClient.Instance == null || PlayerControl.LocalPlayer == null) return;
             try
             {
-                Hazel.MessageWriter mw = Hazel.MessageWriter.Get((Hazel.SendOption)1);
+                MessageWriter mw = MessageWriter.Get((SendOption)1);
                 mw.StartMessage((byte)5);
                 mw.Write(AmongUsClient.Instance.GameId);
                 mw.StartMessage((byte)2);
