@@ -64,8 +64,7 @@ namespace ZeroMenu
                     stream.CopyTo(ms);
                     _backgroundTexture = new Texture2D(2, 2, TextureFormat.RGBA32, false);
                     _backgroundTexture.LoadImage(ms.ToArray());
-
-                    // I think you can change the background opacity here :d
+                    
                     Color[] pixels = _backgroundTexture.GetPixels();
                     for (int i = 0; i < pixels.Length; i++)
                     {
@@ -97,6 +96,7 @@ namespace ZeroMenu
                     Vector2 mousePos = Input.mousePosition;
                     _windowRect.position = new Vector2(mousePos.x, Screen.height - mousePos.y);
                 }
+                ClickRipple.Clear();
             }
 
             float tabWidth = 75f;
@@ -139,8 +139,13 @@ namespace ZeroMenu
                 GUI.Box(new Rect(0, 0, windowWidth, windowHeight), GUIContent.none, _bgStyle);
             }
 
+            if (Event.current.type == EventType.MouseDown && Event.current.button == 0)
+            {
+                ClickRipple.Spawn(Event.current.mousePosition);
+            }
+
             GUILayout.Space(10f);
-            GUILayout.Label("ZeroMenu v1.0.5", MenuStyles.Title, new Il2CppReferenceArray<GUILayoutOption>(0));
+            GUILayout.Label("ZeroMenu v1.0.4", MenuStyles.Title, new Il2CppReferenceArray<GUILayoutOption>(0));
             GUILayout.Space(10f);
 
             float tabWidth = 75f;
@@ -207,6 +212,8 @@ namespace ZeroMenu
             GUILayout.EndHorizontal();
 
             GUI.DragWindow(new Rect(0, 0, windowWidth, 45f));
+
+            ClickRipple.Draw();
         }
     }
 }
