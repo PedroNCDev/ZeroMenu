@@ -12,6 +12,7 @@ namespace ZeroMenu.Tabs
         private static bool _doRejoin = false;
         private static bool _doSetPing = false;
         private static bool _doDisconnectAll = false;
+        private static bool _doCopyCode = false;
 
         public void Draw()
         {
@@ -23,6 +24,11 @@ namespace ZeroMenu.Tabs
             Tuff.AlwaysRed = CustomToggle.Draw(Tuff.AlwaysRed, "Always Red", "TuffAlwaysRed");
 
             GUILayout.Space(15f);
+
+            if (CustomButton.Draw("Copy Last Game Code"))
+            {
+                _doCopyCode = true;
+            }
 
             if (CustomButton.Draw("Rejoin Last Game"))
             {
@@ -45,6 +51,11 @@ namespace ZeroMenu.Tabs
 
         public static void Update()
         {
+            if (_doCopyCode)
+            {
+                Tuff.CopyLastGameCode();
+                _doCopyCode = false;
+            }
             if (_doRejoin)
             {
                 Tuff.Rejoin();
