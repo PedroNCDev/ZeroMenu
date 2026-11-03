@@ -12,7 +12,7 @@ namespace ZeroMenu
     {
         public const string PluginGuid = "com.mies.zeromenu";
         public const string PluginName = "ZeroMenu";
-        public const string PluginVersion = "1.0.6";
+        public const string PluginVersion = "1.0.7";
 
         public static MainUI menuUI;
         public static NotificationManager notifications;
@@ -20,9 +20,10 @@ namespace ZeroMenu
 
         public override void Load()
         {
-            Log.LogInfo("ZeroMenu loaded correct!");
+            Log.LogInfo("ZeroMenu cargado correctamente!");
 
             HostSettings.Initialize(Log);
+            Vipershifter.LoadSprites();
 
             _harmony = new Harmony(PluginGuid);
             _harmony.PatchAll();
