@@ -1,6 +1,7 @@
 using System;
 using UnityEngine;
 using ZeroMenu.Functions;
+using ZeroMenu.Utilities;
 using Il2CppInterop.Runtime.InteropTypes.Arrays;
 using AmongUs.GameOptions;
 
@@ -12,6 +13,9 @@ namespace ZeroMenu.Tabs
         private Vector2 _listScroll = Vector2.zero;
         private Vector2 _actionScroll = Vector2.zero;
         private static bool _showHostOnly = false;
+
+        private static float _targetSpeed = 1.0f;
+        private static bool _invertControls = false;
 
         public void Draw()
         {
@@ -57,6 +61,8 @@ namespace ZeroMenu.Tabs
                 if (CustomButton.Draw(label))
                 {
                     Players.SelectedPlayer = player;
+                    _targetSpeed = 1.0f;
+                    _invertControls = false;
                 }
             }
         }
@@ -177,7 +183,38 @@ namespace ZeroMenu.Tabs
                 float roleIndex = CustomSlider.DrawAuto((float)Players.SelectedRoleIndex, 0f, Players.ValidRoles.Length - 1, new Il2CppReferenceArray<GUILayoutOption>(new GUILayoutOption[] { GUILayout.Width(200f) }));
                 Players.SelectedRoleIndex = Mathf.RoundToInt(roleIndex);
                 if (CustomButton.Draw("Apply Role")) { try { Players.SetRole(target); } catch { } }
+
+                GUILayout.Space(5f);
+                
+                GUILayout.Label($"Speed: {_targetSpeed:F2}", MenuStyles.Label, new Il2CppReferenceArray<GUILayoutOption>(0));
+                float newSpeed = CustomSlider.DrawAuto(_targetSpeed, 0f, 10f, new Il2CppReferenceArray<GUILayoutOption>(new GUILayoutOption[] { GUILayout.Width(200f) }));
+                if (Mathf.Abs(newSpeed - _targetSpeed) > 0.01f)
+                {
+                    _targetSpeed = newSpeed;
+                    ApplySpeed(target, _targetSpeed, _invertControls);
+                }
+
+                bool newInvert = CustomToggle.Draw(_invertControls, "Invert Controls", "Invert_" + target.PlayerId);
+                if (newInvert != _invertControls)
+                {
+                    _invertControls = newInvert;
+                    ApplySpeed(target, _targetSpeed, _invertControls);
+                }
             }
+        }
+
+        private static void ApplySpeed(PlayerControl target, float speed, bool invert)
+        {
+            if (target == null) return;
+            float finalSpeed = invert ? -speed : speed;
+            
+            try
+            {
+                IGameOptions gameOptions = GameOptions.CreateCloneOptions(GameManager.Instance.LogicOptions.currentGameOptions);
+                gameOptions.SetFloat(FloatOptionNames.PlayerSpeedMod, finalSpeed);
+                GameOptions.SendGameOptionsToClient(gameOptions, target.OwnerId);
+            }
+            catch { }
         }
     }
 }
