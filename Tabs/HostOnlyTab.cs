@@ -16,7 +16,7 @@ namespace ZeroMenu.Tabs
         private const float SubTabSpacing = 5f;
         private const float SubTabBarHeight = 35f;
 
-        private static readonly string[] _subtabNames = { "General", "Role Assign", "Settings" };
+        private static readonly string[] _subtabNames = { "General", "Role Assign", "Settings", "Dummys" };
         private int _subtab = 0;
 
         private float _subtabLinePosition = 0f;
@@ -26,6 +26,7 @@ namespace ZeroMenu.Tabs
         private Vector2 _generalScroll = Vector2.zero;
         private Vector2 _roleScroll = Vector2.zero;
         private Vector2 _settingsScroll = Vector2.zero;
+        private Vector2 _dummyScroll = Vector2.zero;
 
         private static byte _selectedMap = 0;
 
@@ -34,6 +35,9 @@ namespace ZeroMenu.Tabs
 
         private static Dictionary<FloatOptionNames, TextField> _floatFields = new Dictionary<FloatOptionNames, TextField>();
         private static Dictionary<Int32OptionNames, TextField> _intFields = new Dictionary<Int32OptionNames, TextField>();
+
+        private static TextField _dummyTextField = new TextField("");
+        private static PlayerControl _selectedDummyPlayer = null;
 
         public void Draw()
         {
@@ -46,6 +50,7 @@ namespace ZeroMenu.Tabs
                 case 0: DrawGeneral(); break;
                 case 1: DrawRoleAssign(); break;
                 case 2: DrawSettings(); break;
+                case 3: DrawDummys(); break;
             }
         }
 
@@ -381,6 +386,102 @@ namespace ZeroMenu.Tabs
             else
             {
                 GUILayout.Label("Unknown game mode. No settings available.", MenuStyles.Label, System.Array.Empty<GUILayoutOption>());
+            }
+
+            GUILayout.EndVertical();
+            GUILayout.EndScrollView();
+        }
+
+        private void DrawDummys()
+        {
+            _dummyScroll = SmoothScrollView.Begin(_dummyScroll, System.Array.Empty<GUILayoutOption>());
+            GUILayout.BeginVertical(new Il2CppReferenceArray<GUILayoutOption>(new GUILayoutOption[] { GUILayout.Width((float)MainUI.windowWidth * 0.425f) }));
+
+            if (PlayerControl.LocalPlayer == null || PlayerControl.LocalPlayer.Data == null)
+            {
+                GUILayout.Label("You are not currently in a game.", MenuStyles.Label, new Il2CppReferenceArray<GUILayoutOption>(0));
+            }
+            else
+            {
+                GUILayout.Label("Former Text with Dummys", MenuStyles.BoldLabel, System.Array.Empty<GUILayoutOption>());
+                _dummyTextField.Draw(300, 22);
+                
+                if (_dummyTextField.Content.Length > 64)
+                {
+                    _dummyTextField.Content = _dummyTextField.Content.Substring(0, 64);
+                }
+
+                if (CustomButton.Draw("Former Text with Dummys"))
+                {
+                    Host.SpawnText(_dummyTextField.Content, PlayerControl.LocalPlayer.GetTruePosition(), PlayerControl.LocalPlayer.PlayerId);
+                }
+
+                if (CustomButton.Draw("Spawn Dummy"))
+                {
+                    Host.SpawnSingleDummy(PlayerControl.LocalPlayer.GetTruePosition(), PlayerControl.LocalPlayer.PlayerId);
+                }
+
+                if (CustomButton.Draw("Clear All Dummys"))
+                {
+                    Host.ClearAllDummies();
+                }
+
+                GUILayout.Space(10f);
+                GUILayout.Box("", MenuStyles.Line, new Il2CppReferenceArray<GUILayoutOption>(new GUILayoutOption[] { GUILayout.ExpandWidth(true) }));
+                GUILayout.Space(10f);
+
+                GUILayout.BeginHorizontal(new Il2CppReferenceArray<GUILayoutOption>(0));
+
+                GUILayout.BeginVertical(new Il2CppReferenceArray<GUILayoutOption>(new GUILayoutOption[] { GUILayout.Width(180f) }));
+                GUILayout.Label("Select Player", MenuStyles.BoldLabel, System.Array.Empty<GUILayoutOption>());
+                foreach (var player in PlayerControl.AllPlayerControls)
+                {
+                    if (player == null || player.Data == null) continue;
+
+                    string nameColor = ColorUtility.ToHtmlStringRGB(player.Data.Color);
+                    string label = $"<color=#{nameColor}>{player.Data.PlayerName}</color>";
+
+                    if (CustomButton.Draw(label))
+                    {
+                        _selectedDummyPlayer = player;
+                    }
+                }
+                GUILayout.EndVertical();
+
+                GUILayout.BeginVertical(new Il2CppReferenceArray<GUILayoutOption>(0));
+                if (_selectedDummyPlayer != null && _selectedDummyPlayer.Data != null)
+                {
+                    string targetColor = ColorUtility.ToHtmlStringRGB(_selectedDummyPlayer.Data.Color);
+                    GUILayout.Label($"Selected Player: <color=#{targetColor}>{_selectedDummyPlayer.Data.PlayerName}</color>", MenuStyles.BoldLabel, new Il2CppReferenceArray<GUILayoutOption>(0));
+
+                    if (CustomButton.Draw("Spawn Dummy"))
+                    {
+                        Host.SpawnSingleDummy(_selectedDummyPlayer.GetTruePosition(), _selectedDummyPlayer.PlayerId);
+                    }
+
+                    bool isTrail = Host.TrailTarget == _selectedDummyPlayer;
+                    if (CustomToggle.Draw(isTrail, "Trail Dummys", "Trail_" + _selectedDummyPlayer.PlayerId) != isTrail)
+                    {
+                        Host.TrailTarget = isTrail ? null : _selectedDummyPlayer;
+                    }
+
+                    if (CustomButton.Draw("Former Text with Dummys"))
+                    {
+                        Host.SpawnText(_dummyTextField.Content, _selectedDummyPlayer.GetTruePosition(), _selectedDummyPlayer.PlayerId);
+                    }
+
+                    if (CustomButton.Draw("Clear Dummys of Players"))
+                    {
+                        Host.ClearDummies(_selectedDummyPlayer.PlayerId);
+                    }
+                }
+                else
+                {
+                    GUILayout.Label("No player selected.", MenuStyles.Label, new Il2CppReferenceArray<GUILayoutOption>(0));
+                }
+                GUILayout.EndVertical();
+
+                GUILayout.EndHorizontal();
             }
 
             GUILayout.EndVertical();
