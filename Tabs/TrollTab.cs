@@ -24,12 +24,13 @@ namespace ZeroMenu.Tabs
             Troll.CrashLobby = CustomToggle.Draw(Troll.CrashLobby, "Queue Lobby Crash", "CrashLobby");
             Troll.DisableVents = CustomToggle.Draw(Troll.DisableVents, "Disable Vents", "DisableVents");
             Troll.BlockSabotages = CustomToggle.Draw(Troll.BlockSabotages, "Block Sabotages", "BlockSabotages");
+            Troll.BlockScanner = CustomToggle.Draw(Troll.BlockScanner, "Block Scanner", "BlockScanner");
             Troll.DoorTrollerEnabled = CustomToggle.Draw(Troll.DoorTrollerEnabled, "Door Troller", "DoorTroller");
             Troll.AutoExposeEnabled = CustomToggle.Draw(Troll.AutoExposeEnabled, "Auto Expose Impostors", "AutoExpose");
 
-            bool newVal = CustomToggle.Draw(Troll.DisableGameEndNonHost, "Disable Game Ending (non-host)", "DisableGameEndNonHost");
-            if (newVal != Troll.DisableGameEndNonHost)
-                Troll.SetDisableGameEndNonHost(newVal);
+            bool newGameEnd = CustomToggle.Draw(Troll.DisableGameEndNonHost, "Disable Game Ending (non-host)", "DisableGameEndNonHost");
+            if (newGameEnd != Troll.DisableGameEndNonHost)
+                Troll.SetDisableGameEndNonHost(newGameEnd);
 
             if (Troll.DoorTrollerEnabled)
             {
