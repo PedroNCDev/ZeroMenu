@@ -14,6 +14,9 @@ namespace ZeroMenu
 
         private bool isMenuOpen = false;
         private Rect _windowRect;
+        private Vector2 _targetWindowPos;
+        private Vector2 _windowVelocity;
+        
         private List<ITab> _tabs = new List<ITab>();
         private int _selectedTab = 0;
 
@@ -27,10 +30,23 @@ namespace ZeroMenu
         private Texture2D _backgroundTexture;
         private GUIStyle _bgStyle;
 
+        private GUIStyle _poleStyle;
+        private GUIStyle _poleGlowStyle;
+        private float _poleScale = 1f;
+        private float _poleScaleVelocity = 0f;
+        private bool _isDraggingPole = false;
+        private Vector2 _poleDragOffset = Vector2.zero;
+
+        private const float PoleWidth = 220f;
+        private const float PoleHeight = 8f;
+
         private void Start()
         {
             _windowRect = new Rect(100, 100, windowWidth, windowHeight);
+            _targetWindowPos = _windowRect.position;
+            
             LoadBackground();
+            InitPoleStyles();
 
             _tabs.Add(new AboutTab());
             _tabs.Add(new SelfTab());
@@ -50,6 +66,38 @@ namespace ZeroMenu
             _tabs.Add(new ProtectionsTab());
             _tabs.Add(new AnticheatTab());
             _tabs.Add(new ConfigTab());
+        }
+
+        private void InitPoleStyles()
+        {
+            _poleStyle = new GUIStyle();
+            _poleStyle.normal.background = RoundedTexture.Get(4, Color.white, Color.white, 0);
+            _poleStyle.hover.background = _poleStyle.normal.background;
+
+            _poleGlowStyle = new GUIStyle();
+            _poleGlowStyle.normal.background = CreateGlowTexture(64, 16, 4);
+            _poleGlowStyle.border = new RectOffset { left = 4, right = 4, top = 4, bottom = 4 };
+        }
+
+        private Texture2D CreateGlowTexture(int width, int height, int fadeRadius)
+        {
+            Texture2D tex = new Texture2D(width, height, TextureFormat.RGBA32, false);
+            Color[] pixels = new Color[width * height];
+            for (int y = 0; y < height; y++)
+            {
+                for (int x = 0; x < width; x++)
+                {
+                    float fx = Mathf.Clamp01((float)Mathf.Min(x, width - 1 - x) / fadeRadius);
+                    float fy = Mathf.Clamp01((float)Mathf.Min(y, height - 1 - y) / fadeRadius);
+                    float alpha = Mathf.Min(fx, fy);
+                    alpha = Mathf.SmoothStep(0f, 1f, alpha);
+                    pixels[y * width + x] = new Color(1f, 1f, 1f, alpha);
+                }
+            }
+            tex.SetPixels(pixels);
+            tex.Apply();
+            tex.hideFlags = HideFlags.HideAndDontSave;
+            return tex;
         }
 
         private void LoadBackground()
@@ -94,9 +142,25 @@ namespace ZeroMenu
                 if (isMenuOpen && Config.OpenOnMouse)
                 {
                     Vector2 mousePos = Input.mousePosition;
-                    _windowRect.position = new Vector2(mousePos.x, Screen.height - mousePos.y);
+                    _targetWindowPos = new Vector2(mousePos.x, Screen.height - mousePos.y);
+                    _windowRect.position = _targetWindowPos;
                 }
                 ClickRipple.Clear();
+            }
+
+            if (isMenuOpen)
+            {
+                if (_isDraggingPole)
+                {
+                    _windowRect.position = Vector2.SmoothDamp(_windowRect.position, _targetWindowPos, ref _windowVelocity, 0.2f);
+                }
+                else
+                {
+                    _targetWindowPos = _windowRect.position;
+                    _windowVelocity = Vector2.zero;
+                }
+                
+                _poleScale = Mathf.SmoothDamp(_poleScale, _isDraggingPole ? 1.05f : 1.0f, ref _poleScaleVelocity, 0.1f);
             }
 
             float tabWidth = 75f;
@@ -124,6 +188,42 @@ namespace ZeroMenu
             GUI.contentColor = Color.white;
 
             _windowRect = GUI.Window(0, _windowRect, (GUI.WindowFunction)DrawWindow, "", MenuStyles.Window);
+
+            DrawPole();
+        }
+
+        private void DrawPole()
+        {
+            float scaledWidth = PoleWidth * _poleScale;
+            float scaledHeight = PoleHeight * _poleScale;
+            
+            float xPos = _windowRect.x + (windowWidth / 2f) - (scaledWidth / 2f);
+            float yPos = _windowRect.y + windowHeight + 10f;
+
+            Rect poleRect = new Rect(xPos, yPos, scaledWidth, scaledHeight);
+            Rect glowRect = new Rect(poleRect.x - 4f, poleRect.y - 4f, poleRect.width + 8f, poleRect.height + 8f);
+
+            Event e = Event.current;
+
+            if (e.type == EventType.MouseDown && e.button == 0 && poleRect.Contains(e.mousePosition))
+            {
+                _isDraggingPole = true;
+                _poleDragOffset = e.mousePosition - _windowRect.position;
+                e.Use();
+            }
+            else if (e.type == EventType.MouseDrag && _isDraggingPole)
+            {
+                _targetWindowPos = e.mousePosition - _poleDragOffset;
+                e.Use();
+            }
+            else if (e.type == EventType.MouseUp && e.button == 0 && _isDraggingPole)
+            {
+                _isDraggingPole = false;
+                e.Use();
+            }
+
+            GUI.Box(glowRect, GUIContent.none, _poleGlowStyle);
+            GUI.Box(poleRect, GUIContent.none, _poleStyle);
         }
 
         private void DrawWindow(int windowID)
