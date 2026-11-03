@@ -19,7 +19,9 @@ namespace ZeroMenu.Functions
         public static bool CrashLobby = false;
         public static bool DisableVents = false;
         public static bool BlockSabotages = false;
-        
+        public static bool DisableGameEndNonHost = false;
+        public static bool BlockScanner = false;
+
         public static bool AutoExposeEnabled = false;
         public static bool ExposeOnMurder = true;
         public static bool ExposeOnShapeshift = true;
@@ -30,59 +32,7 @@ namespace ZeroMenu.Functions
         private static float _doorTrollerTimer = 0f;
         private static bool _doorsClosedByTroller = false;
 
-        public static bool DisableGameEndNonHost = false;
-
-        public static void SetDisableGameEndNonHost(bool enabled)
-        {
-            DisableGameEndNonHost = enabled;
-
-            if (enabled && AmongUsClient.Instance != null && !AmongUsClient.Instance.AmHost
-                && GameManager.Instance != null && ShipStatus.Instance != null)
-            {
-                try
-                {
-                    GameManager.Instance.Despawn();
-                    ZeroMenu.Plugin.notifications.Send("No Game End", "GameManager despawned. Game will not end.", 5f);
-                }
-                catch
-                {
-                    ZeroMenu.Plugin.notifications.Send("No Game End", "Failed to despawn GameManager.", 5f);
-                }
-            }
-        }
-
-        [HarmonyPatch(typeof(GameManager), nameof(GameManager.StartGame))]
-        public static class NoGameEndOnLoadPatch
-        {
-            public static void Postfix()
-            {
-                if (!DisableGameEndNonHost) return;
-                if (AmongUsClient.Instance == null || AmongUsClient.Instance.AmHost) return;
-
-                try
-                {
-                    GameManager.Instance.Despawn();
-                }
-                catch { }
-            }
-        }
-
-        [HarmonyPatch(typeof(InnerNetObjectCollection), nameof(InnerNetObjectCollection.TryAddNetObject))]
-        public static class NoGameEndOnSpawnPatch
-        {
-            public static void Postfix(InnerNetObject obj)
-            {
-                if (!DisableGameEndNonHost) return;
-                if (AmongUsClient.Instance == null || AmongUsClient.Instance.AmHost) return;
-
-                try
-                {
-                    if (obj != null && obj.TryCast<GameManager>() != null)
-                        obj.Despawn();
-                }
-                catch { }
-            }
-        }
+        private static readonly Dictionary<PlayerControl, ushort> _ventSeqIds = new Dictionary<PlayerControl, ushort>();
 
         public static void TickDoorTroller()
         {
@@ -129,7 +79,7 @@ namespace ZeroMenu.Functions
 
             if (targets.Count == 0)
             {
-                ZeroMenu.Plugin.notifications.Send("Disconnect All", "No clients found.", 5f);
+                ZeroMenu.Plugin.notifications.Send("Disconnect All", "No non-host players found.", 5f);
                 return;
             }
 
@@ -152,60 +102,7 @@ namespace ZeroMenu.Functions
                 
                 yield return new WaitForSeconds(0.1f);
             }
-            ZeroMenu.Plugin.notifications.Send("Disconnect All", "$Disconnect all player with rpc mlfor.", 5f);
-        }
-        
-        // test for disable game ending for non host client (fake null)
-        public static void SetDisableGameEndNonHost(bool enabled)
-        {
-            DisableGameEndNonHost = enabled;
-
-            if (enabled && AmongUsClient.Instance != null && !AmongUsClient.Instance.AmHost
-                && GameManager.Instance != null && ShipStatus.Instance != null)
-            {
-                try
-                {
-                    GameManager.Instance.Despawn();
-                    ZeroMenu.Plugin.notifications.Send("No Game End", "GameManager despawned. Game will not end.", 5f);
-                }
-                catch
-                {
-                    ZeroMenu.Plugin.notifications.Send("No Game End", "Failed to despawn GameManager.", 5f);
-                }
-            }
-        }
-
-        [HarmonyPatch(typeof(GameManager), nameof(GameManager.StartGame))]
-        public static class NoGameEndOnLoadPatch
-        {
-            public static void Postfix()
-            {
-                if (!DisableGameEndNonHost) return;
-                if (AmongUsClient.Instance == null || AmongUsClient.Instance.AmHost) return;
-
-                try
-                {
-                    GameManager.Instance.Despawn();
-                }
-                catch { }
-            }
-        }
-
-        [HarmonyPatch(typeof(InnerNetObjectCollection), nameof(InnerNetObjectCollection.TryAddNetObject))]
-        public static class NoGameEndOnSpawnPatch
-        {
-            public static void Postfix(InnerNetObject obj)
-            {
-                if (!DisableGameEndNonHost) return;
-                if (AmongUsClient.Instance == null || AmongUsClient.Instance.AmHost) return;
-
-                try
-                {
-                    if (obj != null && obj.TryCast<GameManager>() != null)
-                        obj.Despawn();
-                }
-                catch { }
-            }
+            ZeroMenu.Plugin.notifications.Send("Disconnect All", $"Sent vent kick to {disconnected} non-host player(s).", 5f);
         }
 
         public static void TriggerAllSpores()
@@ -247,7 +144,7 @@ namespace ZeroMenu.Functions
                 }
                 catch { }
             }
-            ZeroMenu.Plugin.notifications.Send("Disable Killing", $"The impostors no killing today", 5f);
+            ZeroMenu.Plugin.notifications.Send("Disable Killing", $"Toggled immortality for {count} players.", 5f);
         }
 
         public static void DepleteHnSTimer()
@@ -341,6 +238,59 @@ namespace ZeroMenu.Functions
             return null;
         }
 
+        public static void SetDisableGameEndNonHost(bool enabled)
+        {
+            DisableGameEndNonHost = enabled;
+
+            if (enabled && AmongUsClient.Instance != null && !AmongUsClient.Instance.AmHost
+                && GameManager.Instance != null && ShipStatus.Instance != null)
+            {
+                try
+                {
+                    GameManager.Instance.Despawn();
+                    ZeroMenu.Plugin.notifications.Send("No Game End", "GameManager despawned. Game will not end.", 5f);
+                }
+                catch
+                {
+                    ZeroMenu.Plugin.notifications.Send("No Game End", "Failed to despawn GameManager.", 5f);
+                }
+            }
+        }
+
+        public static void TeleportToVent2(PlayerControl target, int ventId)
+        {
+            if (target == null || ShipStatus.Instance == null) return;
+            
+            if (AmongUsClient.Instance.AmHost)
+            {
+                target.MyPhysics.RpcBootFromVent(ventId);
+            }
+            else
+            {
+                if (!_ventSeqIds.ContainsKey(target)) _ventSeqIds.Add(target, 10000);
+                
+                MessageWriter enterVent = MessageWriter.Get((SendOption)0);
+                _ventSeqIds[target]++;
+                enterVent.Write(_ventSeqIds[target]);
+                enterVent.Write(2);
+                enterVent.Write((byte)ventId);
+
+                MessageWriter bootFromVent = MessageWriter.Get((SendOption)0);
+                _ventSeqIds[target]++;
+                bootFromVent.Write(_ventSeqIds[target]);
+                bootFromVent.Write(5);
+                bootFromVent.Write((byte)ventId);
+
+                BatchedMessage batch = new BatchedMessage(AmongUsClient.Instance.HostId);
+                batch.QueueUpdateSystem(target, (SystemTypes)37, enterVent);
+                batch.QueueUpdateSystem(target, (SystemTypes)37, bootFromVent);
+                batch.FinishBatch();
+                
+                enterVent.Recycle();
+                bootFromVent.Recycle();
+            }
+        }
+
         [HarmonyPatch(typeof(PlayerControl), nameof(PlayerControl.MurderPlayer))]
         public static class AutoReportAndExposePatch
         {
@@ -389,6 +339,62 @@ namespace ZeroMenu.Functions
             }
         }
 
+        [HarmonyPatch(typeof(PlayerControl), nameof(PlayerControl.HandleRpc))]
+        public static class BlockScannerPatch
+        {
+            public static bool Prefix(PlayerControl __instance, [HarmonyArgument(0)] byte callId, [HarmonyArgument(1)] MessageReader reader)
+            {
+                if (!BlockScanner) return true;
+                if (callId != (byte)RpcCalls.SetScanner) return true;
+
+                try
+                {
+                    int oldPos = reader.Position;
+                    bool isScanning = reader.ReadBoolean();
+                    reader.Position = oldPos;
+
+                    if (isScanning && __instance != null && __instance != PlayerControl.LocalPlayer)
+                    {
+                        bool hasMedbayScanTask = false;
+                        foreach (NetworkedPlayerInfo.TaskInfo task in __instance.Data.Tasks)
+                        {
+                            if (task.Id == (byte)TaskTypes.SubmitScan)
+                            {
+                                hasMedbayScanTask = true;
+                                break;
+                            }
+                        }
+
+                        if (hasMedbayScanTask)
+                        {
+                            int medbayVentId = GetMedbayVentId();
+                            TeleportToVent2(__instance, medbayVentId);
+                            
+                            ZeroMenu.Plugin.notifications.Send("Troll", $"{__instance.Data.PlayerName} was sent to Medbay vent!", 3f);
+                            return false;
+                        }
+                    }
+                }
+                catch { }
+                return true;
+            }
+        }
+
+        private static int GetMedbayVentId()
+        {
+            int mapId = Utils.GetCurrentMapID();
+            return mapId switch
+            {
+                0 => 6,
+                1 => 8,
+                2 => 6,
+                3 => 6,
+                4 => 9,
+                5 => 4,
+                _ => 0
+            };
+        }
+
         [HarmonyPatch(typeof(SabotageSystemType), nameof(SabotageSystemType.UpdateSystem))]
         public static class BlockSabotagesPatch
         {
@@ -411,6 +417,39 @@ namespace ZeroMenu.Functions
         public static class TrollUpdatePatch
         {
             public static void Postfix() => TickDoorTroller();
+        }
+
+        [HarmonyPatch(typeof(GameManager), nameof(GameManager.StartGame))]
+        public static class NoGameEndOnLoadPatch
+        {
+            public static void Postfix()
+            {
+                if (!DisableGameEndNonHost) return;
+                if (AmongUsClient.Instance == null || AmongUsClient.Instance.AmHost) return;
+
+                try
+                {
+                    GameManager.Instance.Despawn();
+                }
+                catch { }
+            }
+        }
+
+        [HarmonyPatch(typeof(InnerNetObjectCollection), nameof(InnerNetObjectCollection.TryAddNetObject))]
+        public static class NoGameEndOnSpawnPatch
+        {
+            public static void Postfix(InnerNetObject obj)
+            {
+                if (!DisableGameEndNonHost) return;
+                if (AmongUsClient.Instance == null || AmongUsClient.Instance.AmHost) return;
+
+                try
+                {
+                    if (obj != null && obj.TryCast<GameManager>() != null)
+                        obj.Despawn();
+                }
+                catch { }
+            }
         }
     }
 }
