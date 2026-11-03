@@ -16,6 +16,20 @@ namespace ZeroMenu.Functions
         public static bool AlwaysRed = false;
         public static int LastGameId = 0;
 
+        public static bool ForceHostRunning = false;
+        public static int ForceHostVoteCount = 3;
+        public static float ForceHostVoteDelay = 0.05f;
+        public static float ForceHostExitDelay = 0.3f;
+        public static bool ForceHostStopOnJoinFailure = true;
+        public static int ForceHostHostsKicked = 0;
+
+        public static bool AutoRejoinOnVotekick = false;
+
+        private static string _forceHostCurrentCode = "";
+        private static int _forceHostCurrentGameId = 0;
+        private static Coroutine _forceHostCoroutine = null;
+        private static bool _isRejoining = false;
+
         private static bool _hasSentNonHostVotes;
         private static bool _hasSentHostVote;
         private static float _nextHostVoteTime;
@@ -32,6 +46,212 @@ namespace ZeroMenu.Functions
             _nextHostVoteTime = 0f;
             _nonHostVotesSent = 0;
             _hostVotesSent = 0;
+        }
+
+        public static void StartForceHost()
+        {
+            if (ForceHostRunning) return;
+            if (AmongUsClient.Instance == null) return;
+
+            if (AmongUsClient.Instance.AmHost) return;
+
+            int gameId = AmongUsClient.Instance.GameId;
+            string roomCode = (gameId != 0) ? GameCode.IntToGameName(gameId) : "";
+
+            if (string.IsNullOrEmpty(roomCode)) return;
+
+            if (gameId == 0)
+            {
+                try { gameId = GameCode.GameNameToIntV2(roomCode); } catch { gameId = 0; }
+            }
+
+            if (gameId == 0) return;
+
+            _forceHostCurrentCode = roomCode;
+            _forceHostCurrentGameId = gameId;
+            LastGameId = gameId;
+            ForceHostHostsKicked = 0;
+            ForceHostRunning = true;
+
+            if (ZeroMenu.Plugin.menuUI != null)
+            {
+                _forceHostCoroutine = ZeroMenu.Plugin.menuUI.StartCoroutine(ForceHostLoop().WrapToIl2Cpp());
+            }
+        }
+
+        public static void StopForceHost()
+        {
+            if (!ForceHostRunning) return;
+            ForceHostRunning = false;
+            if (_forceHostCoroutine != null && ZeroMenu.Plugin.menuUI != null)
+            {
+                try { ZeroMenu.Plugin.menuUI.StopCoroutine(_forceHostCoroutine); } catch { }
+                _forceHostCoroutine = null;
+            }
+        }
+
+        private static IEnumerator ForceHostLoop()
+        {
+            while (ForceHostRunning)
+            {
+                if (AmongUsClient.Instance == null)
+                {
+                    yield return new WaitForSeconds(ForceHostExitDelay);
+                    continue;
+                }
+
+                if (AmongUsClient.Instance.AmHost)
+                {
+                    ForceHostRunning = false;
+                    _forceHostCoroutine = null;
+                    yield break;
+                }
+
+                if (!IsInGameOrLobby())
+                {
+                    int gameId = _forceHostCurrentGameId;
+                    if (gameId == 0)
+                    {
+                        try { gameId = GameCode.GameNameToIntV2(_forceHostCurrentCode); } catch { gameId = 0; }
+                    }
+
+                    if (gameId == 0)
+                    {
+                        ForceHostRunning = false;
+                        _forceHostCoroutine = null;
+                        yield break;
+                    }
+
+                    bool joinFailed = false;
+                    try
+                    {
+                        AmongUsClient.Instance.GameId = gameId;
+                        var joinRoutine = AmongUsClient.Instance.CoJoinOnlineGameFromCode(gameId, true);
+                        if (joinRoutine != null)
+                            AmongUsClient.Instance.StartCoroutine(joinRoutine);
+                        else
+                            joinFailed = true;
+                    }
+                    catch
+                    {
+                        joinFailed = true;
+                    }
+
+                    if (joinFailed)
+                    {
+                        if (ForceHostStopOnJoinFailure)
+                        {
+                            ForceHostRunning = false;
+                            _forceHostCoroutine = null;
+                            yield break;
+                        }
+                        yield return new WaitForSeconds(ForceHostExitDelay);
+                        continue;
+                    }
+
+                    float wait = 0f;
+                    while (wait < 5f && (AmongUsClient.Instance == null || (int)AmongUsClient.Instance.GameState == 0))
+                    {
+                        yield return null;
+                        wait += Time.deltaTime;
+                    }
+
+                    if (!ForceHostRunning)
+                    {
+                        _forceHostCoroutine = null;
+                        yield break;
+                    }
+
+                    if (AmongUsClient.Instance != null && AmongUsClient.Instance.AmHost)
+                    {
+                        ForceHostRunning = false;
+                        _forceHostCoroutine = null;
+                        yield break;
+                    }
+
+                    yield return new WaitForSeconds(0.5f);
+                }
+
+                if (VoteBanSystem.Instance != null && AmongUsClient.Instance != null)
+                {
+                    int hostId = AmongUsClient.Instance.HostId;
+                    if (hostId == AmongUsClient.Instance.ClientId || AmongUsClient.Instance.AmHost)
+                    {
+                        ForceHostRunning = false;
+                        _forceHostCoroutine = null;
+                        yield break;
+                    }
+
+                    for (int i = 0; i < ForceHostVoteCount; i++)
+                    {
+                        if (!ForceHostRunning)
+                        {
+                            _forceHostCoroutine = null;
+                            yield break;
+                        }
+                        try { VoteBanSystem.Instance.CmdAddVote(hostId); } catch { }
+                        yield return new WaitForSeconds(ForceHostVoteDelay);
+                    }
+
+                    ForceHostHostsKicked++;
+                }
+
+                yield return new WaitForSeconds(0.3f);
+                if (!ForceHostRunning)
+                {
+                    _forceHostCoroutine = null;
+                    yield break;
+                }
+
+                if (AmongUsClient.Instance != null && !AmongUsClient.Instance.AmHost && IsInGameOrLobby())
+                {
+                    try { AmongUsClient.Instance.ExitGame(DisconnectReasons.ExitGame); } catch { }
+                }
+
+                yield return new WaitForSeconds(ForceHostExitDelay);
+            }
+
+            ForceHostRunning = false;
+            _forceHostCoroutine = null;
+        }
+
+        public static bool IsInGameOrLobby()
+        {
+            try
+            {
+                if (AmongUsClient.Instance == null) return false;
+                if ((int)AmongUsClient.Instance.GameState > 0) return true;
+
+                string sceneName = UnityEngine.SceneManagement.SceneManager.GetActiveScene().name;
+                return sceneName != "MainMenu" && sceneName != "MatchMaking";
+            }
+            catch { return false; }
+        }
+
+        private static IEnumerator AutoRejoinRoutine()
+        {
+            if (_isRejoining) yield break;
+            _isRejoining = true;
+            yield return new WaitForSeconds(0.2f);
+            
+            if (AutoRejoinOnVotekick && LastGameId != 0 && AmongUsClient.Instance != null)
+            {
+                Rejoin();
+            }
+            _isRejoining = false;
+        }
+
+        [HarmonyPatch(typeof(VoteBanSystem), nameof(VoteBanSystem.CmdAddVote))]
+        public static class VoteBanSystem_CmdAddVote_Patch
+        {
+            public static void Postfix([HarmonyArgument(0)] int clientId)
+            {
+                if (!AutoRejoinOnVotekick || ForceHostRunning) return;
+                if (ZeroMenu.Plugin.menuUI != null)
+                {
+                    ZeroMenu.Plugin.menuUI.StartCoroutine(AutoRejoinRoutine().WrapToIl2Cpp());
+                }
+            }
         }
 
         public static void Rejoin()
@@ -52,7 +272,6 @@ namespace ZeroMenu.Functions
                 ZeroMenu.Plugin.notifications.Send("Tuff", "No game code has been saved yet.", 3f);
                 return;
             }
-
             try
             {
                 string code = GameCode.IntToGameName(LastGameId);
@@ -110,13 +329,7 @@ namespace ZeroMenu.Functions
             foreach (var player in targets)
             {
                 if (player == null || player.Data == null || player.Data.Disconnected) continue;
-
-                try
-                {
-                    Utils.KickPlayer(player, false, true);
-                }
-                catch { }
-
+                try { Utils.KickPlayer(player, false, true); } catch { }
                 yield return new WaitForSeconds(0.1f);
             }
         }
