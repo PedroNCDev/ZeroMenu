@@ -63,6 +63,13 @@ namespace ZeroMenu.Functions
         public static bool SpawnMeetingHud = false;
         public static bool DespawnMeetingHud = false;
 
+        public static readonly Dictionary<byte, List<PlayerControl>> PlayerDummies = new Dictionary<byte, List<PlayerControl>>();
+        public static readonly List<PlayerControl> TrailDummies = new List<PlayerControl>();
+        public static PlayerControl TrailTarget = null;
+        public static float TrailInterval = 0.05f;
+        private static float _lastTrailTime = 0f;
+        public const int MaxTrailDummies = 15;
+
         public static readonly RoleTypes[] ValidRoles = {
             RoleTypes.Crewmate, RoleTypes.Impostor, RoleTypes.Scientist,
             RoleTypes.Engineer, RoleTypes.GuardianAngel, RoleTypes.Shapeshifter,
@@ -415,9 +422,157 @@ namespace ZeroMenu.Functions
                 && GameOptionsManager.Instance.currentGameOptions != null;
         }
 
+        public static PlayerControl SpawnSingleDummy(Vector2 pos, byte playerId)
+        {
+            try
+            {
+                if (AmongUsClient.Instance == null || AmongUsClient.Instance.PlayerPrefab == null) return null;
+
+                PlayerControl dummy = UnityEngine.Object.Instantiate<PlayerControl>(
+                    AmongUsClient.Instance.PlayerPrefab,
+                    pos,
+                    Quaternion.identity
+                );
+                
+                dummy.PlayerId = playerId;
+                AmongUsClient.Instance.Spawn(dummy, -2, 0);
+
+                if (!PlayerDummies.ContainsKey(playerId))
+                    PlayerDummies[playerId] = new List<PlayerControl>();
+                
+                PlayerDummies[playerId].Add(dummy);
+                return dummy;
+            }
+            catch { return null; }
+        }
+
+        public static void DestroyDummy(PlayerControl dummy)
+        {
+            if (dummy == null) return;
+            try
+            {
+                if (AmongUsClient.Instance != null) AmongUsClient.Instance.Despawn(dummy);
+                if (dummy.gameObject != null) UnityEngine.Object.Destroy(dummy.gameObject);
+            }
+            catch { }
+        }
+
+        public static void SpawnText(string text, Vector2 origin, byte playerId)
+        {
+            ClearDummies(playerId);
+            
+            if (string.IsNullOrEmpty(text)) return;
+            text = text.ToUpperInvariant();
+            if (text.Length > 64) text = text.Substring(0, 64);
+
+            float pixelSize = 0.4f;
+            List<Vector2> positions = new List<Vector2>();
+
+            int totalWidth = 0;
+            foreach (char c in text)
+            {
+                if (c == ' ') totalWidth += 3;
+                else totalWidth += 6;
+            }
+
+            float halfW = totalWidth * pixelSize * 0.5f;
+            int currentX = 0;
+
+            foreach (char c in text)
+            {
+                if (c == ' ')
+                {
+                    currentX += 3;
+                    continue;
+                }
+
+                if (!Utils.Font5x5.TryGetValue(c, out string[] pattern))
+                    pattern = Utils.Font5x5['?'];
+
+                for (int row = 0; row < 5; row++)
+                {
+                    for (int col = 0; col < 5; col++)
+                    {
+                        if (pattern[row][col] == '1')
+                        {
+                            Vector2 pos = new Vector2(
+                                origin.x - halfW + (currentX + col) * pixelSize,
+                                origin.y + 1.5f - row * pixelSize
+                            );
+                            positions.Add(pos);
+                        }
+                    }
+                }
+                currentX += 6;
+            }
+
+            foreach (var pos in positions)
+            {
+                SpawnSingleDummy(pos, playerId);
+            }
+        }
+
+        public static void ClearDummies(byte playerId)
+        {
+            if (PlayerDummies.TryGetValue(playerId, out List<PlayerControl> dummies))
+            {
+                foreach (var dummy in dummies) DestroyDummy(dummy);
+                dummies.Clear();
+                PlayerDummies.Remove(playerId);
+            }
+
+            for (int i = TrailDummies.Count - 1; i >= 0; i--)
+            {
+                if (TrailDummies[i].PlayerId == playerId)
+                {
+                    DestroyDummy(TrailDummies[i]);
+                    TrailDummies.RemoveAt(i);
+                }
+            }
+        }
+
+        public static void ClearAllDummies()
+        {
+            foreach (var list in PlayerDummies.Values)
+            {
+                foreach (var dummy in list) DestroyDummy(dummy);
+            }
+            PlayerDummies.Clear();
+
+            foreach (var dummy in TrailDummies) DestroyDummy(dummy);
+            TrailDummies.Clear();
+            
+            TrailTarget = null;
+        }
+
         public static void Tick()
         {
             if (!AmongUsClient.Instance) return;
+
+            if (TrailTarget != null && TrailTarget.Data != null && !TrailTarget.Data.Disconnected)
+            {
+                if (Time.time - _lastTrailTime >= TrailInterval)
+                {
+                    _lastTrailTime = Time.time;
+                    PlayerControl d = SpawnSingleDummy(TrailTarget.transform.position, TrailTarget.PlayerId);
+                    if (d != null)
+                    {
+                        TrailDummies.Add(d);
+                        if (TrailDummies.Count > MaxTrailDummies)
+                        {
+                            PlayerControl oldest = TrailDummies[0];
+                            TrailDummies.RemoveAt(0);
+                            DestroyDummy(oldest);
+                        }
+                    }
+                }
+            }
+            else if (TrailTarget != null)
+            {
+                TrailTarget = null;
+                foreach (var d in TrailDummies) DestroyDummy(d);
+                TrailDummies.Clear();
+            }
 
             if (DiscoParty && AmongUsClient.Instance.AmHost)
             {
@@ -593,7 +748,7 @@ namespace ZeroMenu.Functions
                     writer.StartMessage(14);
                     writer.Write(operation == 1);
                     writer.EndMessage();
-                    var batch = new BatchedMessage(player.OwnerId);
+                    var batch = new Utilities.BatchedMessage(player.OwnerId);
                     batch.QueueDataFlag(ShipStatus.Instance.NetId, writer);
                     batch.FinishBatch();
                     writer.Recycle();
@@ -615,7 +770,7 @@ namespace ZeroMenu.Functions
                 if (!FakeShapeshiftBubble || !shouldAnimate || __instance != PlayerControl.LocalPlayer) return true;
                 int origColor = __instance.Data.DefaultOutfit.ColorId;
                 int newColor = UnityEngine.Random.Range(0, 18);
-                var batch = new BatchedMessage(-1);
+                var batch = new Utilities.BatchedMessage(-1);
                 batch.QueueSetColor(__instance, (byte)newColor);
                 batch.QueueShapeshift(__instance, target, true);
                 batch.QueueSetColor(__instance, (byte)origColor);
