@@ -9,6 +9,7 @@
 </p>
 
 **ZeroMenu** Mod For Among Us!
+**ZeroMenu** Cheat For Among Us
 
 <img alt="image" src="ZeroMenuinGame.jpeg">
 
