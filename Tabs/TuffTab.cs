@@ -39,8 +39,6 @@ namespace ZeroMenu.Tabs
                 else _doForceHost = true;
             }
 
-            GUILayout.Space(10f);
-
             if (CustomButton.Draw("Copy Last Game Code"))
             {
                 _doCopyCode = true;
