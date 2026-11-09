@@ -6,207 +6,210 @@ namespace ZeroMenu
 {
     public static class CustomToggle
     {
-        private const float ToggleWidth = 36f;
+        private const float ToggleWidth = 45f;
         private const float ToggleHeight = 22f;
-        private const float KnobSize = 16f;
-        private const float KnobPadding = 3f;
-        private const float AnimationDuration = 0.2f;
-
-        private static GUIStyle _trackOffStyle;
-        private static GUIStyle _trackOnStyle;
-        private static GUIStyle _knobStyle;
-        private static GUIStyle _knobGlowStyle;
+        private const float KnobSize = 18f;
+        private const float KnobPadding = 2f;
+        private const float AnimationSpeed = 8f;
 
         private static readonly Dictionary<string, float> _animState = new Dictionary<string, float>();
-        private static readonly Dictionary<string, float> _lastUpdateTime = new Dictionary<string, float>();
 
-        private static void ApplyAllStates(GUIStyle s, Texture2D bg)
+        private static readonly Color _offColor = new Color(0.25f, 0.25f, 0.25f, 1f);
+        private static readonly Color _onColor = new Color(0.65f, 0.75f, 0.85f, 1f);
+        private static readonly Color _thumbColor = Color.white;
+
+        private static Texture2D _offTex;
+        private static Texture2D _onTex;
+        private static Texture2D _thumbTex;
+
+        private static void EnsureTextures()
         {
-            s.normal.background = bg;
-            s.hover.background = bg;
-            s.active.background = bg;
-            s.focused.background = bg;
-            s.onNormal.background = bg;
-            s.onHover.background = bg;
-            s.onActive.background = bg;
-            s.onFocused.background = bg;
+            if (_offTex == null)
+            {
+                _offTex = MakeSolidTex(_offColor);
+                _onTex = MakeSolidTex(_onColor);
+                _thumbTex = MakeSolidTex(_thumbColor);
+            }
         }
 
-        private static Texture2D CreateGlowTexture(int size)
+        private static Texture2D MakeSolidTex(Color c)
         {
-            Texture2D tex = new Texture2D(size, size, TextureFormat.RGBA32, false);
-            int center = size / 2;
-            float radius = center;
-            for (int y = 0; y < size; y++)
-            {
-                for (int x = 0; x < size; x++)
-                {
-                    float dist = Vector2.Distance(new Vector2(x, y), new Vector2(center, center));
-                    float alpha = Mathf.Clamp01(1f - (dist / radius));
-                    alpha = Mathf.Pow(alpha, 2.5f) * 0.8f;
-                    tex.SetPixel(x, y, new Color(1f, 1f, 1f, alpha));
-                }
-            }
+            Texture2D tex = new Texture2D(2, 2, TextureFormat.RGBA32, false);
+            tex.SetPixel(0, 0, c);
+            tex.SetPixel(0, 1, c);
+            tex.SetPixel(1, 0, c);
+            tex.SetPixel(1, 1, c);
             tex.Apply();
+            tex.filterMode = FilterMode.Point;
             tex.hideFlags = HideFlags.HideAndDontSave;
             return tex;
         }
 
-        private static void EnsureStyles()
-        {
-            if (_trackOffStyle == null)
-            {
-                _trackOffStyle = new GUIStyle();
-                Texture2D bg = RoundedTexture.Get(11, new Color(0.15f, 0.15f, 0.20f, 1f), Color.clear, 0);
-                ApplyAllStates(_trackOffStyle, bg);
-                _trackOffStyle.border = new RectOffset { left = 13, right = 13, top = 13, bottom = 13 };
-                _trackOffStyle.padding = new RectOffset();
-                _trackOffStyle.margin = new RectOffset();
-            }
-            if (_trackOnStyle == null)
-            {
-                _trackOnStyle = new GUIStyle();
-                Texture2D bg = RoundedTexture.Get(11, new Color(0.65f, 0.75f, 0.85f, 1f), Color.clear, 0);
-                ApplyAllStates(_trackOnStyle, bg);
-                _trackOnStyle.border = new RectOffset { left = 13, right = 13, top = 13, bottom = 13 };
-                _trackOnStyle.padding = new RectOffset();
-                _trackOnStyle.margin = new RectOffset();
-            }
-            if (_knobStyle == null)
-            {
-                _knobStyle = new GUIStyle();
-                Texture2D bg = RoundedTexture.Get(8, Color.white, Color.white, 0);
-                ApplyAllStates(_knobStyle, bg);
-                _knobStyle.border = new RectOffset { left = 10, right = 10, top = 10, bottom = 10 };
-                _knobStyle.padding = new RectOffset();
-                _knobStyle.margin = new RectOffset();
-            }
-            if (_knobGlowStyle == null)
-            {
-                _knobGlowStyle = new GUIStyle();
-                Texture2D glowTex = CreateGlowTexture(32);
-                ApplyAllStates(_knobGlowStyle, glowTex);
-                _knobGlowStyle.border = new RectOffset { left = 16, right = 16, top = 16, bottom = 16 };
-                _knobGlowStyle.padding = new RectOffset();
-                _knobGlowStyle.margin = new RectOffset();
-            }
-        }
-
-        private static float GetAnimatedValue(string key, bool target)
-        {
-            float targetValue = target ? 1f : 0f;
-            float currentValue;
-
-            if (!_animState.TryGetValue(key, out currentValue))
-            {
-                _animState[key] = targetValue;
-                _lastUpdateTime[key] = Time.unscaledTime;
-                return targetValue;
-            }
-
-            float now = Time.unscaledTime;
-            float lastTime;
-            if (!_lastUpdateTime.TryGetValue(key, out lastTime)) lastTime = now;
-
-            float dt = now - lastTime;
-            if (dt > 0.1f) dt = 0.1f;
-            _lastUpdateTime[key] = now;
-
-            float step = dt / AnimationDuration;
-            currentValue = Mathf.MoveTowards(currentValue, targetValue, step);
-            _animState[key] = currentValue;
-
-            return currentValue;
-        }
-
         public static bool Draw(bool value, string label, string toggleName = null)
         {
-            EnsureStyles();
+            EnsureTextures();
 
             string key = toggleName ?? label ?? "default";
-            float anim = GetAnimatedValue(key, value);
+            if (!_animState.ContainsKey(key))
+                _animState[key] = value ? 1f : 0f;
+
+            float target = value ? 1f : 0f;
+            _animState[key] = Mathf.Lerp(_animState[key], target, Time.deltaTime * AnimationSpeed);
+            float anim = _animState[key];
 
             GUILayout.BeginHorizontal(new Il2CppReferenceArray<GUILayoutOption>(0));
 
-            Il2CppReferenceArray<GUILayoutOption> fixedSize = new Il2CppReferenceArray<GUILayoutOption>(new GUILayoutOption[] { GUILayout.Width(ToggleWidth), GUILayout.Height(ToggleHeight) });
-            Rect rect = GUILayoutUtility.GetRect(ToggleWidth, ToggleHeight, fixedSize);
-
-            Event e = Event.current;
-
-            if (e.type == EventType.MouseDown && e.button == 0 && rect.Contains(e.mousePosition))
+            if (!string.IsNullOrEmpty(label))
             {
-                value = !value;
-                e.Use();
+                GUILayout.Label(label, MenuStyles.Label, new Il2CppReferenceArray<GUILayoutOption>(new GUILayoutOption[] { GUILayout.Width(220f) }));
             }
 
-            GUIContent emptyContent = new GUIContent("");
-            GUIStyle trackStyle = (anim >= 0.5f) ? _trackOnStyle : _trackOffStyle;
-            GUI.Box(rect, emptyContent, trackStyle);
+            Il2CppReferenceArray<GUILayoutOption> fixedSize = new Il2CppReferenceArray<GUILayoutOption>(new GUILayoutOption[] { GUILayout.Width(ToggleWidth), GUILayout.Height(ToggleHeight) });
+            Rect rect = GUILayoutUtility.GetRect(ToggleWidth, ToggleHeight, fixedSize);
+            
+            bool isHover = rect.Contains(Event.current.mousePosition);
 
-            float knobY = rect.y + (rect.height - KnobSize) / 2f;
+            Color bgColor = Color.Lerp(_offColor, _onColor, anim);
+            if (isHover) bgColor = Color.Lerp(bgColor, Color.white, 0.3f);
+
+            GUIStyle trackStyle = new GUIStyle(GUI.skin.box);
+            trackStyle.normal.background = anim < 0.5f ? _offTex : _onTex;
+
+            Color savedColor = GUI.color;
+            GUI.color = bgColor;
+            GUI.Box(rect, "", trackStyle);
+            GUI.color = savedColor;
+
+            if (GUI.Button(rect, "", GUIStyle.none))
+            {
+                value = !value;
+            }
+
             float knobXLeft = rect.x + KnobPadding;
             float knobXRight = rect.x + rect.width - KnobSize - KnobPadding;
             float knobX = Mathf.Lerp(knobXLeft, knobXRight, anim);
 
-            Rect thumbRect = new Rect(knobX, knobY, KnobSize, KnobSize);
+            GUIStyle knobStyle = new GUIStyle(GUI.skin.box);
+            knobStyle.normal.background = _thumbTex;
             
-            Rect glowRect = new Rect(thumbRect.x - 8f, thumbRect.y - 8f, thumbRect.width + 16f, thumbRect.height + 16f);
-            GUI.Box(glowRect, emptyContent, _knobGlowStyle);
-
-            GUI.Box(thumbRect, emptyContent, _knobStyle);
-
-            if (!string.IsNullOrEmpty(label))
-            {
-                GUILayout.Label(label, MenuStyles.Label, new Il2CppReferenceArray<GUILayoutOption>(0));
-            }
+            GUI.Box(new Rect(knobX, rect.y + KnobPadding, KnobSize, KnobSize), "", knobStyle);
 
             GUILayout.EndHorizontal();
+            GUILayout.Space(2f);
+
             return value;
         }
     }
 
     public static class CustomButton
     {
-        private static GUIStyle _style;
-        private static readonly Dictionary<string, float> _fadeStates = new Dictionary<string, float>();
-
-        private static void InitStyle()
+        private class ButtonState
         {
-            if (_style != null) return;
-            
-            _style = new GUIStyle(GUI.skin.button);
+            public float AnimProgress = 0f;
+            public float Scale = 1f;
+            public float ScaleVelocity = 0f;
+            public bool IsAnimating = false;
+        }
+
+        private static GUIStyle _baseStyle;
+        private static readonly Dictionary<string, ButtonState> _states = new Dictionary<string, ButtonState>();
+
+        private const float AnimationDuration = 0.4f;
+
+        private static void InitStyles()
+        {
+            if (_baseStyle != null) return;
+
+            _baseStyle = new GUIStyle(GUI.skin.button);
             Texture2D normalTex = RoundedTexture.Get(8, new Color(0.15f, 0.15f, 0.18f, 1f), Color.clear, 0);
             Texture2D hoverTex = RoundedTexture.Get(8, new Color(0.25f, 0.25f, 0.28f, 1f), Color.clear, 0);
             
-            _style.normal.background = normalTex;
-            _style.hover.background = hoverTex;
-            _style.active.background = hoverTex;
-            _style.normal.textColor = Color.white;
-            _style.hover.textColor = Color.white;
-            _style.active.textColor = Color.white;
-            _style.border = new RectOffset { left = 8, right = 8, top = 8, bottom = 8 };
-            _style.alignment = TextAnchor.MiddleCenter;
-            _style.fontSize = 13;
+            _baseStyle.normal.background = normalTex;
+            _baseStyle.hover.background = hoverTex;
+            _baseStyle.active.background = hoverTex;
+            _baseStyle.normal.textColor = Color.white;
+            _baseStyle.hover.textColor = Color.white;
+            _baseStyle.active.textColor = Color.white;
+            _baseStyle.border = new RectOffset { left = 8, right = 8, top = 8, bottom = 8 };
+            _baseStyle.alignment = TextAnchor.MiddleCenter;
+            _baseStyle.fontSize = 13;
+        }
+
+        private static ButtonState GetState(string key)
+        {
+            if (!_states.TryGetValue(key, out ButtonState state))
+            {
+                state = new ButtonState();
+                _states[key] = state;
+            }
+            return state;
         }
 
         public static bool Draw(string text)
         {
-            InitStyle();
+            InitStyles();
 
-            if (!_fadeStates.ContainsKey(text)) _fadeStates[text] = 0f;
-            float fade = _fadeStates[text];
+            string key = text;
+            ButtonState state = GetState(key);
 
-            Rect rect = GUILayoutUtility.GetRect(new GUIContent(text), _style, new Il2CppReferenceArray<GUILayoutOption>(new GUILayoutOption[] { GUILayout.Height(30f) }));
-            
+            Rect rect = GUILayoutUtility.GetRect(new GUIContent(text), _baseStyle, new Il2CppReferenceArray<GUILayoutOption>(new GUILayoutOption[] { GUILayout.Height(30f) }));
+
+            Event e = Event.current;
             bool clicked = false;
-            if (Event.current.type == EventType.MouseDown && Event.current.button == 0 && rect.Contains(Event.current.mousePosition))
+
+            if (e.type == EventType.MouseDown && e.button == 0 && rect.Contains(e.mousePosition))
             {
                 clicked = true;
-                _fadeStates[text] = 1f;
-                fade = 1f;
+                state.AnimProgress = 0f;
+                state.IsAnimating = true;
+                e.Use();
             }
 
-            GUI.Box(rect, text, _style);
+            if (state.IsAnimating)
+            {
+                state.AnimProgress += Time.unscaledDeltaTime / AnimationDuration;
+                if (state.AnimProgress >= 1f)
+                {
+                    state.AnimProgress = 1f;
+                    state.IsAnimating = false;
+                }
+            }
+
+            float smoothProgress = Mathf.SmoothStep(0f, 1f, state.AnimProgress);
+            
+            float targetScale = 1f;
+            if (smoothProgress > 0.5f)
+            {
+                targetScale = Mathf.Lerp(1f, 1.05f, (smoothProgress - 0.5f) * 2f);
+                if (smoothProgress > 0.8f)
+                {
+                    targetScale = Mathf.Lerp(1.05f, 1f, (smoothProgress - 0.8f) * 5f);
+                }
+            }
+
+            state.Scale = Mathf.SmoothDamp(state.Scale, targetScale, ref state.ScaleVelocity, 0.1f);
+
+            float alpha = 1f;
+            if (state.IsAnimating && smoothProgress > 0.7f)
+            {
+                alpha = Mathf.Lerp(1f, 0.5f, (smoothProgress - 0.7f) / 0.3f);
+            }
+            else if (!state.IsAnimating && state.AnimProgress >= 1f)
+            {
+                state.AnimProgress = 0f;
+            }
+
+            Matrix4x4 savedMatrix = GUI.matrix;
+            Color savedColor = GUI.color;
+
+            Vector2 center = new Vector2(rect.x + rect.width / 2f, rect.y + rect.height / 2f);
+            GUIUtility.ScaleAroundPivot(new Vector2(state.Scale, state.Scale), center);
+            GUI.color = new Color(1f, 1f, 1f, alpha);
+
+            GUI.Box(rect, text, _baseStyle);
+
+            GUI.matrix = savedMatrix;
+            GUI.color = savedColor;
 
             return clicked;
         }
