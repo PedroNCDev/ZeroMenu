@@ -33,10 +33,18 @@ namespace ZeroMenu.Tabs
             Tuff.ForceHostExitDelay = CustomSlider.DrawAuto(Tuff.ForceHostExitDelay, 0.05f, 1.5f, new Il2CppReferenceArray<GUILayoutOption>(new GUILayoutOption[] { GUILayout.Width(150f) }));
             GUILayout.EndHorizontal();
 
-            if (CustomButton.Draw(Tuff.ForceHostRunning ? "Force Host" : "Force Host"))
+            if (CustomButton.Draw(Tuff.ForceHostRunning ? "Stop Force Host" : "Force Host"))
             {
                 if (Tuff.ForceHostRunning) _doStopForceHost = true;
                 else _doForceHost = true;
+            }
+
+            bool newDestroy = CustomToggle.Draw(Tuff.DestroyLobbyToggle, "Destroy Lobby Totally", "TuffDestroyLobby");
+            if (newDestroy != Tuff.DestroyLobbyToggle)
+            {
+                Tuff.DestroyLobbyToggle = newDestroy;
+                if (newDestroy) Tuff.StartDestroyLobby();
+                else Tuff.StopDestroyLobby();
             }
 
             if (CustomButton.Draw("Copy Last Game Code"))
