@@ -24,6 +24,9 @@ namespace ZeroMenu.Functions
         public static int ForceHostHostsKicked = 0;
 
         public static bool AutoRejoinOnVotekick = false;
+        public static bool DestroyLobbyToggle = false;
+        private static bool _destroyLobbyRunning = false;
+        private static Coroutine _destroyLobbyCoroutine = null;
 
         private static string _forceHostCurrentCode = "";
         private static int _forceHostCurrentGameId = 0;
@@ -46,6 +49,68 @@ namespace ZeroMenu.Functions
             _nextHostVoteTime = 0f;
             _nonHostVotesSent = 0;
             _hostVotesSent = 0;
+        }
+
+        public static void StartDestroyLobby()
+        {
+            if (_destroyLobbyRunning || AmongUsClient.Instance == null || PlayerControl.LocalPlayer == null) return;
+            _destroyLobbyRunning = true;
+            if (ZeroMenu.Plugin.menuUI != null)
+            {
+                _destroyLobbyCoroutine = ZeroMenu.Plugin.menuUI.StartCoroutine(DestroyLobbyRoutine().WrapToIl2Cpp());
+            }
+        }
+
+        public static void StopDestroyLobby()
+        {
+            if (!_destroyLobbyRunning) return;
+            _destroyLobbyRunning = false;
+            if (_destroyLobbyCoroutine != null && ZeroMenu.Plugin.menuUI != null)
+            {
+                try { ZeroMenu.Plugin.menuUI.StopCoroutine(_destroyLobbyCoroutine); } catch { }
+                _destroyLobbyCoroutine = null;
+            }
+            DestroyLobbyToggle = false;
+        }
+
+        private static IEnumerator DestroyLobbyRoutine()
+        {
+            PlayerControl.LocalPlayer.CmdReportDeadBody(null);
+            yield return new WaitForSeconds(0.5f);
+            
+            Rejoin();
+            yield return new WaitForSeconds(5f);
+
+            float timeout = 0f;
+            while (PlayerControl.AllPlayerControls.Count > 3 && timeout < 30f && _destroyLobbyRunning)
+            {
+                yield return new WaitForSeconds(1f);
+                timeout += 1f;
+            }
+
+            for (int i = 0; i < 3; i++)
+            {
+                if (!_destroyLobbyRunning) yield break;
+
+                foreach (var p in PlayerControl.AllPlayerControls)
+                {
+                    if (p != null && p != PlayerControl.LocalPlayer && p.OwnerId != AmongUsClient.Instance.ClientId)
+                    {
+                        if (VoteBanSystem.Instance != null && !VoteBanSystem.Instance.HasMyVote(p.OwnerId))
+                        {
+                            VoteBanSystem.Instance.CmdAddVote(p.OwnerId);
+                        }
+                    }
+                }
+                
+                yield return new WaitForSeconds(1.5f);
+                Rejoin();
+                yield return new WaitForSeconds(4f);
+            }
+
+            _destroyLobbyRunning = false;
+            DestroyLobbyToggle = false;
+            ZeroMenu.Plugin.notifications.Send("Tuff", "Destroy Lobby sequence finished!", 3f);
         }
 
         public static void StartForceHost()
